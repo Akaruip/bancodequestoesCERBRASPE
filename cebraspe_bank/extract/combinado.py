@@ -96,9 +96,10 @@ def respostas_de_justificativas(res: ResultadoProva) -> dict[int, str]:
             elif len(corretas) > 1:
                 out[it.numero] = "X"
         else:
-            m = re.search(r"\b(CERTO|ERRADO|CORRETO|INCORRETO)\b", texto.upper())
+            m = re.match(r"^\s*\|*\s*JUSTIFICATIVAS?\|*\s*[-–:]?\s*(CERTO|ERRADO|CORRETO|INCORRETO|ANULAD)", texto.upper()) \
+                or re.search(r"\b(CERTO|ERRADO|CORRETO|INCORRETO)\b", texto.upper())
             if m:
-                out[it.numero] = "C" if m.group(1) in ("CERTO", "CORRETO") else "E"
+                out[it.numero] = "X" if m.group(1) == "ANULAD" else ("C" if m.group(1) in ("CERTO", "CORRETO") else "E")
     return out
 
 

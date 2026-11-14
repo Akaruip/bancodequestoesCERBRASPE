@@ -36,6 +36,11 @@ def _resp(t: str) -> str:
     return t
 
 
+def _eh_titulo(t: str) -> bool:
+    return bool(t) and len(t) < 200 and not re.match(r"^\d", t) and (
+        t.upper() == t or re.match(r"^(PROVA|CARGO|CONHECIMENTOS|BLOCO|[ÁA]REA|ESPECIALIDADE|C\d{2}\b)", norm(t)))
+
+
 def atual_texto_continua(atual, texto: list[str], t: str) -> bool:
     """Linha em maiúsculas que é continuação do texto da justificativa (ex.: siglas longas) não abre seção."""
     return bool(atual and texto and not texto[-1].rstrip().endswith((".", ":", ")")) and len(t.split()) > 12)
@@ -55,7 +60,16 @@ def parse(doc: Documento) -> list[LinhaJust]:
         atual = None
         texto.clear()
 
-    for l in doc.linhas:
+    linhas = doc.linhas
+    cab = [k for k, l in enumerate(linhas) if _CAB.match(l.texto.strip())]
+    titulos: set[int] = set()
+    for k in cab:            # títulos de seção = linhas em maiúsculas imediatamente antes do cabeçalho da tabela
+        j = k - 1
+        while j >= 0 and j not in titulos and _eh_titulo(linhas[j].texto.strip()) and \
+                not (_LINHA.match(linhas[j].texto.strip()) or _LINHA_SO_DEF.match(linhas[j].texto.strip())):
+            titulos.add(j)
+            j -= 1
+    for idx, l in enumerate(linhas):
         t = l.texto.strip()
         if _CAB.match(t):
             fecha()
@@ -73,7 +87,11 @@ def parse(doc: Documento) -> list[LinhaJust]:
             atual = LinhaJust(" / ".join(secao_partes) or None, int((m or m1).group(1)), pre, de, sit, "")
             continue
         tn = norm(t)
-        if t.isupper() and len(t) < 160 and not re.match(r"^\d", t) and not atual_texto_continua(atual, texto, t):
+        if idx in titulos and idx - 1 in titulos and secao_partes and \
+                not re.match(r"^(PROVA|CONHECIMENTOS|BLOCO|CARGO|C\d{2}\b)", tn):
+            secao_partes[-1] = f"{secao_partes[-1]} {t}"      # título quebrado em duas linhas
+            continue
+        if idx in titulos:
             fecha()
             if re.match(r"^(PROVA|CONHECIMENTOS|BLOCO|PARTE|M[OÓ]DULO)", tn):
                 if re.match(r"^(PROVA|CONHECIMENTOS)", tn) and secao_partes and re.match(r"^BLOCO", norm(secao_partes[-1])):

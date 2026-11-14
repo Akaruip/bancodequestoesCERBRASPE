@@ -14,6 +14,7 @@ _ALT = re.compile(r"^([A-E])\s+(\S.*)$")
 _FAIXA = re.compile(r"(?:itens|quest[õo]es)\s+(?:de\s+)?(\d{1,3})\s+(?:a|e)\s+(\d{1,3})", re.I)
 _JUST = re.compile(r"^\|\|JUSTIFICATIVAS?\|\|")
 _JUST_ALT = re.compile(r"^\|\|([A-E])\|\|\s*-?\s*(.*)$")
+_JUST_CE = re.compile(r"^JUSTIFICATIVAS?\s*[-–:]\s*(CERTO|ERRADO|CORRETO|INCORRETO|ANULAD)", re.I)
 _ESPACO = re.compile(r"^espa[çc]o\s+livre$", re.I)
 
 
@@ -283,7 +284,10 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
             bloco = None
             continue
         if atual is not None and not na_margem(l) and not (bloco and bloco.linhas and bloco.linhas[-1] is l):
-            atual.linhas.append(l)
+            if atual.justificativa or _JUST_CE.match(l.texto):
+                atual.justificativa.append(l)      # "JUSTIFICATIVA - Certo. ..." (provas com justificativas)
+            else:
+                atual.linhas.append(l)
             continue
         atual = None
         if bloco is None:
