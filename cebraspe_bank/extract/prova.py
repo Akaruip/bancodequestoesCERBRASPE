@@ -1,0 +1,407 @@
+"""Segmentação de cadernos de prova em textos-base, itens C/E, questões de múltipla escolha e discursivas."""
+from __future__ import annotations
+
+import collections
+import re
+import statistics
+from dataclasses import dataclass, field
+
+from .pdf import Documento, Linha
+
+_SECAO = re.compile(r"^-{2,}\s*(.+?)\s*-{2,}$")
+_QUESTAO = re.compile(r"^QUEST[ÃA]O\s+(?:[^\d\s]{1,2}\s+)?(\d{1,3})\b\s*(.*)$", re.I)
+_ALT = re.compile(r"^([A-E])\s+(\S.*)$")
+_FAIXA = re.compile(r"(?:itens|quest[õo]es)\s+(?:de\s+)?(\d{1,3})\s+(?:a|e)\s+(\d{1,3})", re.I)
+_JUST = re.compile(r"^\|\|JUSTIFICATIVAS?\|\|")
+_JUST_ALT = re.compile(r"^\|\|([A-E])\|\|\s*-?\s*(.*)$")
+_ESPACO = re.compile(r"^espa[çc]o\s+livre$", re.I)
+
+
+@dataclass
+class Bloco:
+    id: int
+    linhas: list[Linha] = field(default_factory=list)
+    faixa: tuple[int, int] | None = None
+
+    @property
+    def texto(self) -> str:
+        return junta(self.linhas)
+
+    @property
+    def tipo(self) -> str:
+        t = self.texto
+        if self.faixa or len(t) > 450 or re.match(r"^Texto\b", t):
+            return "texto"
+        return "comando"
+
+
+@dataclass
+class Item:
+    numero: int
+    tipo: str                                  # CE | ME | DISC
+    linhas: list[Linha] = field(default_factory=list)
+    alternativas: dict[str, list[Linha]] = field(default_factory=dict)
+    justificativa: list[Linha] = field(default_factory=list)
+    bloco: Bloco | None = None
+    blocos_anteriores: list[Bloco] = field(default_factory=list)
+    secao: str | None = None
+    numero_bruto: str = ""
+
+    @property
+    def enunciado(self) -> str:
+        return junta(self.linhas)
+
+    @property
+    def pagina(self) -> int:
+        return self.linhas[0].pagina if self.linhas else 0
+
+    def alternativas_texto(self) -> dict[str, str]:
+        return {k: junta(v) for k, v in self.alternativas.items()}
+
+
+@dataclass
+class ResultadoProva:
+    itens: list[Item]
+    blocos: list[Bloco]
+    tipo: str                                  # CE | ME | DISC | misto
+    cifra: str | None = None                   # mapa glifo->dígito usado nos números ofuscados
+    avisos: list[str] = field(default_factory=list)
+
+
+def junta(linhas: list[Linha]) -> str:
+    out = ""
+    for l in linhas:
+        t = l.texto.strip()
+        if not t:
+            continue
+        if not out:
+            out = t
+        elif out.endswith("-") and not out.endswith(" -") and t[:1].islower():
+            out += t
+        else:
+            out += " " + t
+    return out.strip()
+
+
+def _margens(linhas: list[Linha]) -> dict[tuple[int, int], float]:
+    por = collections.defaultdict(list)
+    for l in linhas:
+        por[(l.pagina, l.col)].append(round(l.x0))
+    m = {}
+    for k, xs in por.items():
+        c = collections.Counter(xs)
+        frequentes = [x for x, n in c.items() if n >= 2] or list(c)
+        m[k] = float(min(frequentes))
+    # margem da coluna pode variar pouco entre páginas: usa a moda global por coluna como apoio
+    return m
+
+
+def _decodifica(tok: str, k: int) -> int | None:
+    ds = []
+    for ch in tok:
+        d = ord(ch) - k
+        if not 0 <= d <= 9:
+            return None
+        ds.append(str(d))
+    return int("".join(ds)) if ds else None
+
+
+def _instrucoes(linhas: list[Linha]) -> set[int]:
+    """Índices das linhas de instruções (parágrafos com '•') — não são conteúdo de questão."""
+    fora: set[int] = set()
+    i = 0
+    while i < len(linhas):
+        l = linhas[i]
+        if l.texto.startswith("•") or l.texto == "•":
+            x_bullet = l.x0
+            fora.add(i)
+            j = i + 1
+            while j < len(linhas):
+                lj = linhas[j]
+                if _SECAO.match(lj.texto):
+                    break
+                if lj.texto.startswith("•") or (lj.pagina == l.pagina and lj.x0 > x_bullet + 5
+                                                and lj.y0 - linhas[j - 1].y1 < 14):
+                    fora.add(j)
+                    j += 1
+                    continue
+                break
+            i = j
+            continue
+        i += 1
+    return fora
+
+
+def _secao(l: Linha) -> str | None:
+    m = _SECAO.match(l.texto)
+    if m:
+        return m.group(1).strip()
+    t = l.texto.strip()
+    if l.col == -1 and t.isupper() and len(t) < 90 and not t[:1].isdigit() and len(t.split()) <= 10 \
+            and re.match(r"^(CONHECIMENTOS|L[ÍI]NGUA|PROVA|PARTE|BLOCO|M[ÓO]DULO|NO[ÇC][ÕO]ES|RACIOC|DIREITO|LEGISLA)", t):
+        return t
+    return None
+
+
+def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int] | None = None) -> ResultadoProva:
+    todas = doc.linhas
+    fora = _instrucoes(todas)
+    linhas = [l for i, l in enumerate(todas) if i not in fora and not _ESPACO.match(l.texto)]
+    margens = _margens(linhas)
+    avisos: list[str] = []
+
+    def na_margem(l: Linha, tol=3.5) -> bool:
+        return abs(l.x0 - margens.get((l.pagina, l.col), l.x0)) <= tol
+
+    # ---------- formato de múltipla escolha / discursiva com "Questão N"
+    n_quest = sum(1 for l in linhas if _QUESTAO.match(l.texto) and na_margem(l, 30))
+    formato_me = n_quest >= 1
+
+    # ---------- candidatos a início de item C/E
+    cands: list[tuple[int, str, str]] = []     # (índice da linha, token, fonte)
+    tams = [l.tam1 for l in linhas if l.tam1]
+    corpo_tam = statistics.median(tams) if tams else 10.0
+    if not formato_me:
+        for i, l in enumerate(linhas):
+            p = l.palavras
+            if not p or not na_margem(l):
+                continue
+            t0 = p[0]
+            if len(p) == 1 and not ((i + 1 < len(linhas) and linhas[i + 1].x0 > l.x0 + 5)
+                                    or (l.tam0 and l.tam0 < corpo_tam - 0.8)):
+                continue
+            if not 1 <= len(t0) <= 3 or (l.tam0 and l.tam0 < 6.5):   # números de linha dos textos são minúsculos
+                continue
+            fonte_distinta = bool((l.fonte0 and l.fonte1 and l.fonte0 != l.fonte1) or
+                                  (l.tam0 and l.tam1 and l.tam0 < l.tam1 - 0.4) or
+                                  (len(p) == 1 and l.tam0 and l.tam0 < corpo_tam - 0.8))
+            if t0.isdigit() or fonte_distinta:
+                cands.append((i, t0, l.fonte0))
+    cifra = None
+    numerados: list[tuple[int, int, str]] = []
+    if cands:
+        diretos = [(i, int(t), t) for i, t, _ in cands if t.isdigit()]
+        numerados = _cadeia(diretos, esperados)
+        if any(not t.isdigit() for _, t, _ in cands):
+            mapa = _resolve_substituicao(cands)
+            if mapa:
+                dec = []
+                for i, t, _ in cands:
+                    if all(ch in mapa for ch in t):
+                        dec.append((i, int("".join(mapa[ch] for ch in t)), t))
+                cad = _cadeia(dec, esperados)
+                if len(cad) > len(numerados):
+                    numerados = cad
+                    cifra = "".join(f"{d}={c}" for c, d in sorted(mapa.items(), key=lambda kv: kv[1]))
+        if cifra is not None:
+            avisos.append(f"números dos itens ofuscados; substituição de glifos decodificada ({cifra})")
+    inicio_item = {i: (n, t) for i, n, t in numerados}
+
+    itens: list[Item] = []
+    blocos: list[Bloco] = []
+    atual: Item | None = None
+    bloco: Bloco | None = None
+    secao: str | None = None
+    estado = None  # ME: 'enunciado' | 'alt' | 'just'
+    ultima_alt: str | None = None
+    recentes: list[Bloco] = []
+
+    def novo_bloco(l: Linha):
+        nonlocal bloco
+        bloco = Bloco(len(blocos) + 1, [l])
+        blocos.append(bloco)
+        recentes.append(bloco)
+
+    for i, l in enumerate(linhas):
+        s = _secao(l)
+        if s:
+            secao = s
+            atual = None
+            bloco = None
+            recentes.clear()
+            continue
+        if formato_me:
+            m = _QUESTAO.match(l.texto)
+            if m and na_margem(l, 30):
+                atual = Item(int(m.group(1)), "DISC" if modalidade == "discursiva" else "ME", secao=secao,
+                             numero_bruto=m.group(1))
+                if m.group(2):
+                    atual.linhas.append(Linha(l.pagina, l.col, l.x0, l.y0, l.x1, l.y1, m.group(2), l.tamanho, l.origem))
+                _vincula(atual, recentes)
+                itens.append(atual)
+                bloco = None
+                estado, ultima_alt = "enunciado", None
+                continue
+            if atual is not None:
+                if _JUST.match(l.texto):
+                    estado = "just"
+                    continue
+                if estado == "just":
+                    atual.justificativa.append(l)
+                    ult = ultima_alt if atual.tipo == "ME" else None
+                    if l.texto.rstrip().endswith("*/") and (ult is None or _ultima_just(atual) == ult):
+                        atual, estado = None, None
+                    continue
+                ma = _ALT.match(l.texto)
+                prox = "A" if ultima_alt is None else chr(ord(ultima_alt) + 1)
+                if ma and ma.group(1) == prox and na_margem(l) and atual.tipo == "ME" and \
+                        (prox != "A" or _proxima_alt(linhas, i, na_margem) == "B"):
+                    ultima_alt = prox
+                    atual.alternativas[prox] = [Linha(l.pagina, l.col, l.x0, l.y0, l.x1, l.y1, ma.group(2), l.tamanho, l.origem)]
+                    estado = "alt"
+                    continue
+                if estado == "alt":
+                    if not na_margem(l) and ultima_alt:
+                        atual.alternativas[ultima_alt].append(l)
+                        continue
+                    if ultima_alt == "E":
+                        atual = None
+                    else:
+                        atual.alternativas[ultima_alt].append(l)
+                        continue
+                else:
+                    atual.linhas.append(l)
+                    continue
+            if bloco is None:
+                novo_bloco(l)
+            else:
+                bloco.linhas.append(l)
+            continue
+
+        # ---------- formato C/E
+        if i in inicio_item:
+            n, tok = inicio_item[i]
+            texto = l.texto[len(tok):].strip()
+            atual = Item(n, "DISC" if modalidade == "discursiva" else "CE", secao=secao, numero_bruto=tok)
+            atual.linhas.append(Linha(l.pagina, l.col, l.x0, l.y0, l.x1, l.y1, texto, l.tamanho, l.origem))
+            _vincula(atual, recentes)
+            itens.append(atual)
+            bloco = None
+            continue
+        if atual is not None and not na_margem(l) and not (bloco and bloco.linhas and bloco.linhas[-1] is l):
+            atual.linhas.append(l)
+            continue
+        atual = None
+        if bloco is None:
+            novo_bloco(l)
+        else:
+            bloco.linhas.append(l)
+
+    for b in blocos:
+        m = _FAIXA.search(b.texto)
+        if m:
+            a, z = int(m.group(1)), int(m.group(2))
+            if a <= z:
+                b.faixa = (a, z)
+    # item -> texto-base: bloco cuja faixa cobre o item; senão o bloco mais recente
+    for it in itens:
+        cobrem = [b for b in it.blocos_anteriores if b.faixa and b.faixa[0] <= it.numero <= b.faixa[1]]
+        cobrem += [b for b in blocos if b.faixa and b.faixa[0] <= it.numero <= b.faixa[1] and b not in cobrem]
+        if cobrem:
+            it.bloco = cobrem[0]
+        elif it.blocos_anteriores:
+            it.bloco = it.blocos_anteriores[-1]
+
+    if modalidade == "discursiva" and not itens:
+        corpo = [l for l in linhas]
+        if corpo:
+            it = Item(1, "DISC", list(corpo), secao=secao)
+            itens = [it]
+            blocos = []
+            avisos.append("discursiva sem numeração: texto inteiro como questão 1")
+
+    tipos = {it.tipo for it in itens}
+    tipo = tipos.pop() if len(tipos) == 1 else ("misto" if tipos else "vazio")
+    if not formato_me and cands and len(numerados) < len(cands):
+        descartados = len(cands) - len(numerados)
+        if descartados:
+            avisos.append(f"{descartados} linha(s) com número na margem fora da sequência de itens")
+    return ResultadoProva(itens, blocos, tipo, cifra, avisos)
+
+
+def _proxima_alt(linhas: list[Linha], i: int, na_margem) -> str | None:
+    for l in linhas[i + 1:]:
+        if _QUESTAO.match(l.texto) or _JUST.match(l.texto):
+            return None
+        m = _ALT.match(l.texto)
+        if m and na_margem(l):
+            return m.group(1)
+    return None
+
+
+def _ultima_just(it: Item) -> str | None:
+    for l in reversed(it.justificativa):
+        m = _JUST_ALT.match(l.texto)
+        if m:
+            return m.group(1)
+    return None
+
+
+def _vincula(it: Item, recentes: list[Bloco]) -> None:
+    it.blocos_anteriores = list(recentes)
+
+
+def _resolve_substituicao(cands: list[tuple[int, str, str]]) -> dict[str, str] | None:
+    """Aprende a substituição glifo->dígito supondo itens consecutivos (s, s+1, ...) em ordem de leitura."""
+    fontes = collections.Counter(f for _, t, f in cands if not t.isdigit())
+    fonte = fontes.most_common(1)[0][0] if fontes else None
+    toks = [t for _, t, f in cands if f == fonte]
+    if len(toks) < 3:
+        return None
+    melhor: tuple[int, dict[str, str]] | None = None
+    for s in range(1, 301):
+        mapa: dict[str, str] = {}
+        usado: dict[str, str] = {}
+        e, ok = s, 0
+        for t in toks:
+            for salto in range(3):                 # tolera até 2 itens não detectados
+                alvo = str(e + salto)
+                if len(t) != len(alvo):
+                    continue
+                novo = dict(mapa)
+                nu = dict(usado)
+                bom = True
+                for ch, dg in zip(t, alvo):
+                    if novo.get(ch, dg) != dg or nu.get(dg, ch) != ch:
+                        bom = False
+                        break
+                    novo[ch] = dg
+                    nu[dg] = ch
+                if bom:
+                    mapa, usado = novo, nu
+                    ok += 1
+                    e += salto + 1
+                    break
+        if melhor is None or ok > melhor[0]:
+            melhor = (ok, mapa)
+    if melhor and melhor[0] >= max(3, int(0.6 * len(toks))):
+        return melhor[1]
+    return None
+
+
+def _cadeia(nums: list[tuple[int, int, str]], esperados: set[int] | None, salto_max: int = 3
+            ) -> list[tuple[int, int, str]]:
+    """Maior sequência crescente em ordem de leitura com saltos de 1 a `salto_max` (itens não detectados)."""
+    if esperados:
+        nums = [x for x in nums if x[1] in esperados] or nums
+    n = len(nums)
+    if not n:
+        return []
+    best = [1] * n
+    prev: list[int | None] = [None] * n
+    ult: dict[int, int] = {}          # número -> índice com melhor cadeia terminando nele
+    for j, (_, v, _) in enumerate(nums):
+        for d in range(1, salto_max + 1):
+            k = ult.get(v - d)
+            if k is not None and best[k] + 1 - (d - 1) * 0.01 > best[j]:
+                best[j] = best[k] + 1
+                prev[j] = k
+                break
+        if v not in ult or best[j] >= best[ult[v]]:
+            ult[v] = j
+    j = max(range(n), key=lambda x: best[x])
+    out = []
+    while j is not None:
+        out.append(nums[j])
+        j = prev[j]
+    return out[::-1]

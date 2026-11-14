@@ -1,0 +1,92 @@
+"""Relatório final (REPORT_FINAL.md) e exportação das pendências (data/pendencias.csv)."""
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+from . import config, db
+
+
+def _tab(cab: list[str], linhas) -> str:
+    out = ["| " + " | ".join(cab) + " |", "|" + "---|" * len(cab)]
+    for l in linhas:
+        out.append("| " + " | ".join("" if v is None else str(v) for v in l) + " |")
+    return "\n".join(out)
+
+
+def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
+    from .validate import _filtro
+    fq, fa = _filtro(slugs, ano, desde)
+    um = lambda q, a=fa: con.execute(q, a).fetchone()[0]  # noqa: E731
+    n_conc = um(f"SELECT COUNT(*) FROM concurso c WHERE 1=1{fq}")
+    n_det = um(f"SELECT COUNT(*) FROM concurso c WHERE c.detalhe_ok=1{fq}")
+    n_com_prova = um(f"SELECT COUNT(DISTINCT c.id) FROM concurso c JOIN prova p ON p.concurso_id=c.id WHERE 1=1{fq}")
+    n_docs = um(f"SELECT COUNT(*) FROM documento d JOIN concurso c ON c.id=d.concurso_id WHERE d.sha256 IS NOT NULL{fq}")
+    n_bytes = um(f"SELECT COALESCE(SUM(d.tamanho),0) FROM documento d JOIN concurso c ON c.id=d.concurso_id WHERE d.sha256 IS NOT NULL{fq}")
+    st = dict(con.execute(f"SELECT COALESCE(p.extracao_status,'?'), COUNT(*) FROM prova p JOIN concurso c ON c.id=p.concurso_id "
+                          f"WHERE 1=1{fq} GROUP BY 1", fa).fetchall())
+    n_prov = sum(st.values())
+    pct = 100.0 * st.get("completa", 0) / n_prov if n_prov else 0.0
+    por_tipo = con.execute(f"SELECT q.tipo, COUNT(*) FROM questao q JOIN prova p ON p.id=q.prova_id JOIN concurso c "
+                           f"ON c.id=p.concurso_id WHERE 1=1{fq} GROUP BY 1 ORDER BY 2 DESC", fa).fetchall()
+    gab = con.execute(f"""SELECT SUM(g.resposta_definitiva IS NOT NULL), SUM(g.resposta_preliminar IS NOT NULL),
+                          SUM(g.anulada), SUM(g.alterada), SUM(g.justificativa IS NOT NULL), SUM(g.padrao_resposta IS NOT NULL)
+                          FROM gabarito g JOIN questao q ON q.id=g.questao_id JOIN prova p ON p.id=q.prova_id
+                          JOIN concurso c ON c.id=p.concurso_id WHERE 1=1{fq}""", fa).fetchone()
+    por_ano = con.execute(
+        f"""SELECT c.ano, COUNT(DISTINCT c.id), COUNT(DISTINCT p.id), COUNT(q.id)
+            FROM concurso c LEFT JOIN prova p ON p.concurso_id=c.id LEFT JOIN questao q ON q.prova_id=p.id
+            WHERE 1=1{fq} GROUP BY c.ano ORDER BY c.ano""", fa).fetchall()
+    fontes = con.execute(f"SELECT COALESCE(c.ano_fonte,'(sem ano)'), COUNT(*) FROM concurso c WHERE 1=1{fq} GROUP BY 1 "
+                         "ORDER BY 2 DESC", fa).fetchall()
+    pend = con.execute(
+        f"""SELECT x.etapa, x.motivo, COUNT(*) FROM pendencia x LEFT JOIN concurso c ON c.id=x.concurso_id
+            WHERE x.resolvido_em IS NULL{fq.replace('c.', 'c.')} GROUP BY 1,2 ORDER BY 1, 3 DESC""", fa).fetchall()
+    # agrupa motivos com números variáveis
+    import re
+    agrup: dict[tuple, int] = {}
+    for e, m, n in pend:
+        chave = (e, re.sub(r"\d+", "N", re.sub(r"\[.*?\]", "[…]", m))[:140])
+        agrup[chave] = agrup.get(chave, 0) + n
+    csv_path = config.DATA_DIR / "pendencias.csv"
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["etapa", "slug", "documento", "motivo", "criado_em"])
+        for r in con.execute(
+                f"""SELECT x.etapa, c.slug, d.nome_arquivo, x.motivo, x.criado_em FROM pendencia x
+                    LEFT JOIN concurso c ON c.id=x.concurso_id LEFT JOIN documento d ON d.id=x.documento_id
+                    WHERE x.resolvido_em IS NULL{fq} ORDER BY x.etapa, c.slug""", fa):
+            w.writerow(list(r))
+    falhos_crawl = [r[0] for r in con.execute(
+        f"SELECT c.slug FROM concurso c WHERE c.detalhe_ok=0{fq} ORDER BY c.slug", fa)]
+
+    md = ["# Relatório final — banco de questões Cebraspe\n",
+          f"Gerado em {db.agora()} a partir de `{config.DB_PATH.name}`.\n",
+          "## Visão geral\n",
+          _tab(["Métrica", "Valor"], [
+              ("Concursos listados", n_conc),
+              ("Concursos com detalhe na API", n_det),
+              ("Concursos com provas extraídas", n_com_prova),
+              ("Documentos baixados", f"{n_docs} ({n_bytes / 1e9:.2f} GB)"),
+              ("Provas processadas", n_prov),
+              ("Provas com extração completa", f"{st.get('completa', 0)} ({pct:.1f}%)"),
+              ("Provas parciais / falhas", f"{st.get('parcial', 0)} / {st.get('falhou', 0)}"),
+          ]),
+          "\n## Questões por tipo\n",
+          _tab(["Tipo", "Questões"], por_tipo),
+          "\n## Gabaritos\n",
+          _tab(["Com definitivo", "Com preliminar", "Anuladas", "Alteradas", "Com justificativa", "Com padrão de resposta"],
+               [tuple(v or 0 for v in gab)]),
+          "\n## Concursos e questões por ano\n",
+          _tab(["Ano", "Concursos", "Provas", "Questões"], por_ano),
+          "\n## Fonte do ano do concurso\n",
+          _tab(["ano_fonte", "Concursos"], fontes),
+          "\n## Pendências (abertas)\n",
+          f"Lista completa em `{csv_path.relative_to(config.ROOT) if csv_path.is_relative_to(config.ROOT) else csv_path}`.\n",
+          _tab(["Etapa", "Motivo (números agrupados)", "Ocorrências"],
+               [(e, m, n) for (e, m), n in sorted(agrup.items(), key=lambda kv: (kv[0][0], -kv[1]))]),
+          "\n### Concursos sem detalhe na API\n",
+          ", ".join(f"`{s}`" for s in falhos_crawl) or "nenhum",
+          ""]
+    Path(saida).write_text("\n".join(md), encoding="utf-8")
+    return {"saida": saida, "provas": n_prov, "completas_pct": round(pct, 1), "pendencias_csv": str(csv_path)}
