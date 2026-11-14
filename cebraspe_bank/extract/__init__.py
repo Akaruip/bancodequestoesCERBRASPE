@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 TIPOS_PROVA = ("prova", "prova_com_gabarito_preliminar", "prova_com_gabarito_definitivo")
 TIPOS_GAB = ("gabarito_preliminar", "gabarito_definitivo")
-VERSAO_EXTRATOR = "8"
+VERSAO_EXTRATOR = "9"
 
 
 def _abs(p: str) -> Path:
@@ -400,10 +400,10 @@ def _aplica_padroes(con, concurso_id: int) -> None:
                  "O", "PARA", "OS", "AS", "TODOS", "CADERNO"}
 
     def toks(t):
-        return {x for x in re.findall(r"[A-Z0-9]+", norm(t)) if x not in genericas}
+        return {str(int(x)) if x.isdigit() else x for x in re.findall(r"[A-Z0-9]+", norm(t)) if x not in genericas}
 
     for pad in pads:
-        alvo = [p for p in discs if p["cargo"] and pad["cargo"] and norm(p["cargo"]) == norm(pad["cargo"])]
+        alvo = [p for p in discs if p["cargo"] and pad["cargo"] and toks(p["cargo"]) == toks(pad["cargo"])]
         if not alvo:
             tp = toks(f"{pad['descricao'] or ''} {pad['cargo'] or ''}")
             if tp:

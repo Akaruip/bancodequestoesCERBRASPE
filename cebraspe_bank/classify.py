@@ -119,7 +119,8 @@ def classificar(nome_arquivo: str, descricao: str | None, extensao: str | None =
         c.tipo = "prova_com_gabarito_definitivo" if defin and not prelim else "prova_com_gabarito_preliminar"
     elif justif and (tem_gab or re.search(r"ALTERA|ANULA", nd)):
         c.tipo = "justificativa"
-    elif _PADRAO.search(nd):
+    elif _PADRAO.search(nd) and re.search(r"RESPOSTA|PADRAORESPOSTA|\bPDR\b", nd) and \
+            not re.match(r"^(EDITAL|COMUNICADO|AVISO|RESPOSTAS? AOS? RECURSOS?|RECURSO)", d) and "RECURSO" not in d:
         c.tipo = "padrao_resposta"
         c.modalidade = "discursiva"
     elif re.match(r"^(PROVAS?|CADERNO)\b.*\bE GABARITOS?\b", d) and not _EDITALISH.search(d):
