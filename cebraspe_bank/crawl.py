@@ -18,7 +18,7 @@ STATUS_FASE = {"Novos": "novos", "Inscrições Abertas": "inscricoes-abertas",
 
 
 def url_arquivo(slug: str, item: dict) -> str:
-    nome = item["nomeArquivo"]
+    nome = item["nomeArquivo"].strip()          # a API às vezes traz TAB/espaço no fim do nome
     if item.get("isGuid"):
         return config.CDN_BASE + quote(nome)
     if item.get("tipoExtensaoArquivo") == "_explorer":
