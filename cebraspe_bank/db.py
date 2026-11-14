@@ -217,7 +217,7 @@ def agora() -> str:
 def conectar(path: Path | str | None = None) -> sqlite3.Connection:
     path = Path(path or config.DB_PATH)
     path.parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(path)
+    con = sqlite3.connect(path, timeout=120)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA journal_mode=WAL")
     _migra(con)
