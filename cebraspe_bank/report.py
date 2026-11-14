@@ -29,6 +29,11 @@ def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
     pct = 100.0 * st.get("completa", 0) / n_prov if n_prov else 0.0
     por_tipo = con.execute(f"SELECT q.tipo, COUNT(*) FROM questao q JOIN prova p ON p.id=q.prova_id JOIN concurso c "
                            f"ON c.id=p.concurso_id WHERE 1=1{fq} GROUP BY 1 ORDER BY 2 DESC", fa).fetchall()
+    n_obj = um(f"SELECT COUNT(*) FROM questao q JOIN prova p ON p.id=q.prova_id JOIN concurso c ON c.id=p.concurso_id "
+               f"WHERE q.tipo<>'DISC'{fq}")
+    sem_gab = um(f"""SELECT COUNT(*) FROM questao q JOIN prova p ON p.id=q.prova_id JOIN concurso c ON c.id=p.concurso_id
+                     LEFT JOIN gabarito g ON g.questao_id=q.id WHERE q.tipo<>'DISC'
+                     AND (g.id IS NULL OR (g.resposta_definitiva IS NULL AND g.resposta_preliminar IS NULL)){fq}""")
     gab = con.execute(f"""SELECT SUM(g.resposta_definitiva IS NOT NULL), SUM(g.resposta_preliminar IS NOT NULL),
                           SUM(g.anulada), SUM(g.alterada), SUM(g.justificativa IS NOT NULL), SUM(g.padrao_resposta IS NOT NULL)
                           FROM gabarito g JOIN questao q ON q.id=g.questao_id JOIN prova p ON p.id=q.prova_id
@@ -75,6 +80,8 @@ def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
           "\n## Questões por tipo\n",
           _tab(["Tipo", "Questões"], por_tipo),
           "\n## Gabaritos\n",
+          f"Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **{sem_gab}** "
+          f"({100.0 * sem_gab / max(1, n_obj):.1f}% de {n_obj}). Cada caso tem pendência com o motivo.\n",
           _tab(["Com definitivo", "Com preliminar", "Anuladas", "Alteradas", "Com justificativa", "Com padrão de resposta"],
                [tuple(v or 0 for v in gab)]),
           "\n## Concursos e questões por ano\n",
@@ -85,6 +92,15 @@ def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
           f"Lista completa em `{csv_path.relative_to(config.ROOT) if csv_path.is_relative_to(config.ROOT) else csv_path}`.\n",
           _tab(["Etapa", "Motivo (números agrupados)", "Ocorrências"],
                [(e, m, n) for (e, m), n in sorted(agrup.items(), key=lambda kv: (kv[0][0], -kv[1]))]),
+          "\n## Observações de método\n",
+          "- Nada é estimado: resposta, ano ou texto que não pôde ser lido fica NULL e gera pendência.\n"
+          "- `alterada=1` só quando há evidência (preliminar e definitivo publicados, ou tabela de justificativas). "
+          "O site costuma retirar o gabarito preliminar após o definitivo, então a ausência de alteração não é prova "
+          "de que o item não mudou.\n"
+          "- Itens com respostas diferentes na mesma tabela (ex.: opções de língua estrangeira) ficam sem resposta.\n"
+          "- Versões de acessibilidade (adaptada, superampliada, ledor, braile, VLibras) foram ignoradas.\n"
+          "- Números de itens ofuscados (substituição de glifos, comum em 2015–2017) são decodificados pela "
+          "restrição de sequência consecutiva.\n",
           "\n### Concursos sem detalhe na API\n",
           ", ".join(f"`{s}`" for s in falhos_crawl) or "nenhum",
           ""]
