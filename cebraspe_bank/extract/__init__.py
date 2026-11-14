@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 TIPOS_PROVA = ("prova", "prova_com_gabarito_preliminar", "prova_com_gabarito_definitivo")
 TIPOS_GAB = ("gabarito_preliminar", "gabarito_definitivo")
-VERSAO_EXTRATOR = "3"
+VERSAO_EXTRATOR = "4"
 
 
 def _abs(p: str) -> Path:

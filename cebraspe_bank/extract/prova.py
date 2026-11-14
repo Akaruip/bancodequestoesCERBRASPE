@@ -154,7 +154,11 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
         return abs(l.x0 - margens.get((l.pagina, l.col), l.x0)) <= tol
 
     # ---------- formato de múltipla escolha / discursiva com "Questão N"
-    n_quest = sum(1 for l in linhas if _QUESTAO.match(l.texto) and na_margem(l, 30))
+    def cab_questao(l: Linha) -> bool:
+        m = _QUESTAO.match(l.texto)
+        return bool(m) and (na_margem(l, 30) or (not m.group(2) and na_margem(l, 90)))
+
+    n_quest = sum(1 for l in linhas if cab_questao(l))
     formato_me = n_quest >= 1
 
     # ---------- candidatos a início de item C/E
@@ -222,7 +226,7 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
             continue
         if formato_me:
             m = _QUESTAO.match(l.texto)
-            if m and na_margem(l, 30):
+            if m and cab_questao(l):
                 atual = Item(int(m.group(1)), "DISC" if modalidade == "discursiva" else "ME", secao=secao,
                              numero_bruto=m.group(1))
                 if m.group(2):

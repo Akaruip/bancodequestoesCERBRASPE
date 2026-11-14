@@ -81,20 +81,22 @@ def _palavras_pagina(page, ocr: bool):
 
 
 def _agrupa_linhas(words, tol=3.0):
-    """words -> lista de (y0, y1, [words]) agrupando pelo centro vertical."""
+    """words -> linhas físicas: mesma linha se o centro está a <= tol ou há sobreposição vertical >= 60%."""
     ws = sorted(words, key=lambda w: ((w[1] + w[3]) / 2, w[0]))
-    linhas: list[list] = []
+    linhas: list[list] = []          # [y0, y1, [words]]
     for w in ws:
         yc = (w[1] + w[3]) / 2
-        if linhas and abs(linhas[-1][0] - yc) <= tol:
-            linhas[-1][1].append(w)
-        else:
-            linhas.append([yc, [w]])
-    out = []
-    for yc, lw in linhas:
-        lw.sort(key=lambda w: w[0])
-        out.append(lw)
-    return out
+        if linhas:
+            y0, y1, lw = linhas[-1]
+            lc = (y0 + y1) / 2
+            sob = min(y1, w[3]) - max(y0, w[1])
+            menor = max(0.1, min(y1 - y0, w[3] - w[1]))
+            if abs(lc - yc) <= tol or sob / menor >= 0.6:
+                lw.append(w)
+                linhas[-1][0], linhas[-1][1] = min(y0, w[1]), max(y1, w[3])
+                continue
+        linhas.append([w[1], w[3], [w]])
+    return [sorted(lw, key=lambda w: w[0]) for _, _, lw in linhas]
 
 
 def _divisor(words, W: float) -> float:
@@ -208,6 +210,8 @@ def ler(caminho: Path | str, forcar_ocr: bool = False, cabecalho_y: float = HEAD
                 log.warning("OCR falhou em %s p.%d: %s", caminho.name, pno + 1, e)
         origem = "ocr" if ocr else "pdf"
         spans = [] if ocr else _spans(page)
+        # marcas de controle em fonte minúscula (ex.: <AGEPAR233001A01E2048>) não são conteúdo
+        words = [w for w in words if not ((w[3] - w[1]) < 5.0 and re.fullmatch(r"<[^>]*>?|<?[^<>]*>", w[4]))]
         fis = _agrupa_linhas(words)
         corte = 0.0
         for lw in fis:
@@ -226,6 +230,8 @@ def ler(caminho: Path | str, forcar_ocr: bool = False, cabecalho_y: float = HEAD
                 continue
             if _lixo(t):
                 continue
+            if statistics.median(w[3] - w[1] for w in lw) < 5.0 and re.fullmatch(r"<[^>]+>|\S+", t):
+                continue          # marcas de controle em fonte minúscula (ex.: <AGEPAR233001A01E2048>)
             corpo.append(lw)
         meio = _divisor([w for lw in corpo for w in lw], W)
         duas = _detecta_duas_colunas(corpo, meio)
