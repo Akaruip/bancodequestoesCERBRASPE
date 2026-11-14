@@ -68,6 +68,10 @@ def download(con, cli: Cliente, slugs=None, ano=None, desde=None, limite: int | 
                 st["registrados_sem_baixar"] += 1
                 continue
             log.warning("hash divergente em %s: rebaixando", destino)
+        if "\ufffd" in d["nome_arquivo"]:
+            _falha(con, d, "nome do arquivo corrompido na API (caractere inválido); URL irrecuperável")
+            st["falhas"] += 1
+            continue
         if limite is not None and st["baixados"] + st["falhas"] >= limite:
             st["adiados"] = st.get("adiados", 0) + 1
             continue
