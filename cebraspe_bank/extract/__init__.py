@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 TIPOS_PROVA = ("prova", "prova_com_gabarito_preliminar", "prova_com_gabarito_definitivo")
 TIPOS_GAB = ("gabarito_preliminar", "gabarito_definitivo")
-VERSAO_EXTRATOR = "9"
+VERSAO_EXTRATOR = "10"
 
 
 def _abs(p: str) -> Path:
@@ -53,7 +53,12 @@ def _grava_grupo(con, doc_id, grupo, fase, respostas: dict[int, str], codigo=Non
 
 def _processa_gabarito(con, doc) -> None:
     caminho = _abs(doc["arquivo_local"])
-    grupos = gab.agrupa(gab.parse(caminho))
+    paginas = gab.parse_todas(caminho)
+    for g in paginas:
+        if not g.respostas:
+            for a in g.avisos:
+                db.pendencia(con, "gabarito", a, doc["concurso_id"], doc["id"])
+    grupos = gab.agrupa([g for g in paginas if g.respostas])
     con.execute("DELETE FROM gabarito_bruto WHERE documento_id=?", (doc["id"],))
     con.execute("DELETE FROM gabarito_grupo WHERE documento_id=?", (doc["id"],))
     if not grupos:
@@ -205,7 +210,14 @@ def _processa_prova(con, doc, concurso) -> None:
         if it.justificativa:
             con.execute("INSERT OR IGNORE INTO gabarito(questao_id, justificativa, fonte_justificativa) VALUES (?,?,?)",
                         (qid, " ".join(l.texto for l in it.justificativa), doc["id"]))
-    if resp_emb:
+    if doc["tipo"] != "prova" and doc["modalidade"] == "discursiva" and res.itens:
+        # prova discursiva publicada junto com o padrão de resposta: o padrão é o próprio documento
+        texto = d.texto
+        for qid in [r[0] for r in con.execute("SELECT id FROM questao WHERE prova_id=? AND tipo='DISC'", (prova_id,))]:
+            con.execute("INSERT INTO gabarito(questao_id, padrao_resposta, fonte_padrao) VALUES (?,?,?) "
+                        "ON CONFLICT(questao_id) DO UPDATE SET padrao_resposta=excluded.padrao_resposta, "
+                        "fonte_padrao=excluded.fonte_padrao", (qid, texto, doc["id"]))
+    elif resp_emb:
         fase = "definitivo" if doc["tipo"] == "prova_com_gabarito_definitivo" else "preliminar"
         _grava_grupo(con, doc["id"], 0, fase, resp_emb, codigo, doc["caderno"], doc["cargo"], origem="embutido")
     elif doc["tipo"] != "prova":

@@ -112,7 +112,11 @@ def classificar(nome_arquivo: str, descricao: str | None, extensao: str | None =
     defin = "DEFINITIV" in nd and not re.search(r"TEXTO DEFINITIVO", nd)
     justif = "JUSTIFICATIVA" in nd
 
-    if _NAO_PROVA.search(d) and not justif:
+    if re.match(r"^PROVAS?\b.*\bE PADR(A?O|OES)\b.*RESPOSTA", d) and not _NAO_PROVA.search(d):
+        c.tipo = "prova_com_gabarito_definitivo" if "PRELIMINAR" not in d and "PROVISORIO" not in d \
+            else "prova_com_gabarito_preliminar"
+        c.modalidade = "discursiva"
+    elif _NAO_PROVA.search(d) and not justif:
         c.tipo = "outro"
         c.motivos.append("prova oral/prática/física: fora do escopo")
     elif justif and tem_prova and tem_gab:

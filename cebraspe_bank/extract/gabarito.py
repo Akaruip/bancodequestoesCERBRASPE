@@ -97,6 +97,7 @@ def parse_pagina(page, pno: int) -> GabaritoPagina:
     g.data_edital = anos.data_edital_texto(tn)
     g.data_aplicacao = anos.data_aplicacao_texto(texto)
 
+    conflitos: set[int] = set()
     for i, (yc, lw) in enumerate(linhas):
         nums = _linha_numeros(lw)
         if not nums:
@@ -123,8 +124,17 @@ def parse_pagina(page, pno: int) -> GabaritoPagina:
             r = "X" if "X" in toks else toks[0]
             num = int(n[4])
             if num in g.respostas and g.respostas[num] != r:
-                g.avisos.append(f"item {num} com duas respostas ({g.respostas[num]}/{r})")
+                conflitos.add(num)
             g.respostas[num] = r
+    if conflitos:
+        if len(conflitos) > 0.3 * max(1, len(g.respostas)):
+            g.avisos.append(f"tabela não confiável: {len(conflitos)} itens com respostas conflitantes; descartada")
+            g.respostas = {}
+        else:
+            for num in sorted(conflitos):
+                g.respostas.pop(num, None)
+            g.avisos.append(f"itens {sorted(conflitos)} com respostas diferentes na mesma página "
+                            f"(ex.: opções de língua estrangeira); deixados sem resposta")
     return g
 
 
@@ -136,6 +146,11 @@ def parse(caminho: Path | str) -> list[GabaritoPagina]:
             if g.respostas:
                 out.append(g)
     return out
+
+
+def parse_todas(caminho: Path | str) -> list[GabaritoPagina]:
+    with pymupdf.open(caminho) as pdf:
+        return [parse_pagina(page, pno) for pno, page in enumerate(pdf)]
 
 
 def agrupa(paginas: list[GabaritoPagina]) -> list[GabaritoPagina]:

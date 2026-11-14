@@ -70,6 +70,11 @@ class ResultadoProva:
     avisos: list[str] = field(default_factory=list)
 
 
+def _dig(t: str) -> bool:
+    """Só dígitos ASCII (str.isdigit aceita '³', '²' etc.)."""
+    return t.isascii() and t.isdigit()
+
+
 def junta(linhas: list[Linha]) -> str:
     out = ""
     for l in linhas:
@@ -157,7 +162,7 @@ def _secao(l: Linha) -> str | None:
     if m:
         return m.group(1).strip()
     t = l.texto.strip()
-    if l.col == -1 and t.isupper() and len(t) < 90 and not t[:1].isdigit() and len(t.split()) <= 10 \
+    if l.col == -1 and t.isupper() and len(t) < 90 and not _dig(t[:1]) and len(t.split()) <= 10 \
             and re.match(r"^(CONHECIMENTOS|L[ÍI]NGUA|PROVA|PARTE|BLOCO|M[ÓO]DULO|NO[ÇC][ÕO]ES|RACIOC|DIREITO|LEGISLA)", t):
         return t
     return None
@@ -208,14 +213,14 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
             fonte_distinta = bool((l.fonte0 and l.fonte1 and l.fonte0 != l.fonte1) or
                                   (l.tam0 and l.tam1 and l.tam0 < l.tam1 - 0.4) or
                                   (len(p) == 1 and l.tam0 and l.tam0 < corpo_tam - 0.8))
-            if t0.isdigit() or fonte_distinta:
+            if _dig(t0) or fonte_distinta:
                 cands.append((i, t0, l.fonte0))
     cifra = None
     numerados: list[tuple[int, int, str]] = []
     if cands:
-        diretos = [(i, int(t), t) for i, t, _ in cands if t.isdigit()]
+        diretos = [(i, int(t), t) for i, t, _ in cands if _dig(t)]
         numerados = _cadeia(diretos, esperados)
-        if any(not t.isdigit() for _, t, _ in cands):
+        if any(not _dig(t) for _, t, _ in cands):
             mapa = _resolve_substituicao(cands)
             if mapa:
                 dec = []
@@ -383,7 +388,7 @@ def _vincula(it: Item, recentes: list[Bloco]) -> None:
 
 def _resolve_substituicao(cands: list[tuple[int, str, str]]) -> dict[str, str] | None:
     """Aprende a substituição glifo->dígito supondo itens consecutivos (s, s+1, ...) em ordem de leitura."""
-    fontes = collections.Counter(f for _, t, f in cands if not t.isdigit())
+    fontes = collections.Counter(f for _, t, f in cands if not _dig(t))
     fonte = fontes.most_common(1)[0][0] if fontes else None
     toks = [t for _, t, f in cands if f == fonte]
     if len(toks) < 3:
