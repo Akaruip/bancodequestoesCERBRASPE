@@ -104,7 +104,7 @@ def _divisor(words, W: float) -> float:
     xs = collections.Counter(round(w[0]) for w in words if 0.40 * W <= w[0] <= 0.62 * W)
     melhor = None
     for x, n in xs.items():
-        if n < 3:
+        if n < 2:
             continue
         cruz = sum(1 for w in words if w[0] < x - 3 and w[2] > x - 1)
         chave = (cruz, x)          # sem cruzamentos; empate -> a menor x (margem, não o recuo)
@@ -219,7 +219,9 @@ def ler(caminho: Path | str, forcar_ocr: bool = False, cabecalho_y: float = HEAD
             if y0 > 70:
                 break
             t = _texto(lw)
-            if re.search(r"CEBRASPE|CESPE|^\|\|\S+\|\|$", t) or (_lixo(t) and y0 < cabecalho_y):
+            if y0 < cabecalho_y and (re.search(r"CEBRASPE\s*[–-]|CESPE\s*\|", t) or
+                                     re.fullmatch(r"\|\|[0-9A-Z_]+N\d{4,}\|\|.*", t) or
+                                     (_lixo(t) and not re.fullmatch(r"\|\|[A-Z]+\|\|", t))):
                 corte = max(corte, max(w[3] for w in lw) + 1.0)
         corpo = []
         for lw in fis:

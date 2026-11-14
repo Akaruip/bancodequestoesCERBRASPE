@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import collections
+import dataclasses
 import re
 import statistics
 from dataclasses import dataclass, field
 
 from .pdf import Documento, Linha
 
-_SECAO = re.compile(r"^-{2,}\s*(.+?)\s*-{2,}$")
+_SECAO = re.compile(r"^-{2,}\s*(.+?)\s*(?:-{2,}|[–—])$")
 _QUESTAO = re.compile(r"^QUEST[ÃA]O\s+(?:[^\d\s]{1,2}\s+)?(\d{1,3})\b\s*(.*)$", re.I)
 _ALT = re.compile(r"^([A-E])\s+(\S.*)$")
 _FAIXA = re.compile(r"(?:itens|quest[õo]es)\s+(?:de\s+)?(\d{1,3})\s+(?:a|e)\s+(\d{1,3})", re.I)
@@ -85,15 +86,29 @@ def junta(linhas: list[Linha]) -> str:
 
 
 def _margens(linhas: list[Linha]) -> dict[tuple[int, int], float]:
+    """Margem esquerda por (página, coluna). Usa a margem global da coluna (todas as páginas) quando a página
+    tem alguma linha nela; senão, o menor x frequente da própria página."""
     por = collections.defaultdict(list)
+    glob_ = collections.defaultdict(list)
     for l in linhas:
         por[(l.pagina, l.col)].append(round(l.x0))
+        glob_[l.col].append(round(l.x0))
+    g = {}
+    for col, xs in glob_.items():
+        c = collections.Counter(xs)
+        freq = [x for x, n in c.items() if n >= 3]
+        if freq:
+            g[col] = float(min(freq))
     m = {}
     for k, xs in por.items():
         c = collections.Counter(xs)
         frequentes = [x for x, n in c.items() if n >= 2] or list(c)
-        m[k] = float(min(frequentes))
-    # margem da coluna pode variar pouco entre páginas: usa a moda global por coluna como apoio
+        local = float(min(frequentes))
+        gc = g.get(k[1])
+        if gc is not None and any(abs(x - gc) <= 4 for x in xs):
+            m[k] = gc
+        else:
+            m[k] = local
     return m
 
 
@@ -115,14 +130,18 @@ def _instrucoes(linhas: list[Linha]) -> set[int]:
         l = linhas[i]
         if l.texto.startswith("•") or l.texto == "•":
             x_bullet = l.x0
+            x_cont = None
             fora.add(i)
             j = i + 1
             while j < len(linhas):
                 lj = linhas[j]
-                if _SECAO.match(lj.texto):
+                if _SECAO.match(lj.texto) or _QUESTAO.match(lj.texto):
                     break
-                if lj.texto.startswith("•") or (lj.pagina == l.pagina and lj.x0 > x_bullet + 5
-                                                and lj.y0 - linhas[j - 1].y1 < 14):
+                continua = (lj.pagina == l.pagina and lj.x0 > x_bullet + 5 and lj.y0 - linhas[j - 1].y1 < 14
+                            and (x_cont is None or abs(lj.x0 - x_cont) <= 3))
+                if continua and x_cont is None:
+                    x_cont = lj.x0
+                if lj.texto.startswith("•") or continua:
                     fora.add(j)
                     j += 1
                     continue
@@ -147,7 +166,16 @@ def _secao(l: Linha) -> str | None:
 def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int] | None = None) -> ResultadoProva:
     todas = doc.linhas
     fora = _instrucoes(todas)
-    linhas = [l for i, l in enumerate(todas) if i not in fora and not _ESPACO.match(l.texto)]
+    linhas = []
+    for i, l in enumerate(todas):
+        if i in fora or _ESPACO.match(l.texto):
+            continue
+        if re.search(r"espa[çc]o\s+livre", l.texto, re.I):     # rótulo da outra coluna fundido na linha
+            t = re.sub(r"\s*espa[çc]o\s+livre\s*", " ", l.texto, flags=re.I).strip()
+            if not t:
+                continue
+            l = dataclasses.replace(l, texto=t)
+        linhas.append(l)
     margens = _margens(linhas)
     avisos: list[str] = []
 
