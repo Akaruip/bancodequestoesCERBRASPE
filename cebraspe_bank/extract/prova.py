@@ -314,6 +314,10 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
             blocos = []
             avisos.append("discursiva sem numeração: texto inteiro como questão 1")
 
+    # "Questão N" sem nenhuma alternativa em toda a prova => questões discursivas
+    if formato_me and itens and all(not it.alternativas for it in itens if it.tipo == "ME"):
+        for it in itens:
+            it.tipo = "DISC"
     tipos = {it.tipo for it in itens}
     tipo = tipos.pop() if len(tipos) == 1 else ("misto" if tipos else "vazio")
     if not formato_me and cands and len(numerados) < len(cands):

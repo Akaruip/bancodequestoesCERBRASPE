@@ -107,7 +107,7 @@ def _divisor(words, W: float) -> float:
         if n < 3:
             continue
         cruz = sum(1 for w in words if w[0] < x - 3 and w[2] > x - 1)
-        chave = (cruz, -n)
+        chave = (cruz, x)          # sem cruzamentos; empate -> a menor x (margem, não o recuo)
         if melhor is None or chave < melhor[0]:
             melhor = (chave, x)
     if melhor and melhor[0][0] <= max(2, 0.02 * len(words)):

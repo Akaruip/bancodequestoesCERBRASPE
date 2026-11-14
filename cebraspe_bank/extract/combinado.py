@@ -13,11 +13,23 @@ from .prova import Bloco, Item, ResultadoProva, _JUST_ALT, junta, segmentar
 _ITEM_COD = re.compile(
     r"^(\d{1,3})\s+([A-Z]{1,2}\d{5,9})\s*[-–]\s*(CORRETO|ERRADO|CERTO|ANULAD[OA]|[A-E]|X)"
     r"(\s*[-–]\s*ANULAD[OA])?\s*\|\s*(.*)$", re.I)
+_ITEM_SEM_COD = re.compile(r"^(\d{1,3})\s+(CORRETO|ERRADO|CERTO)(\s*[-–]\s*ANULAD[OA])?\s*\|\s*(.*)$", re.I)
 _RESP = {"CORRETO": "C", "CERTO": "C", "ERRADO": "E", "ANULADO": "X", "ANULADA": "X"}
 
 
+def _casa_item(t: str):
+    """Normaliza as duas variantes para (numero, codigo, resposta, anulado, texto)."""
+    m = _ITEM_COD.match(t)
+    if m:
+        return m.group(1), m.group(2), m.group(3), m.group(4), m.group(5)
+    m = _ITEM_SEM_COD.match(t)
+    if m:
+        return m.group(1), None, m.group(2), m.group(3), m.group(4)
+    return None
+
+
 def eh_formato_codigo(doc: Documento) -> bool:
-    return sum(1 for l in doc.linhas[:200] if _ITEM_COD.match(l.texto)) >= 2
+    return sum(1 for l in doc.linhas[:200] if _casa_item(l.texto)) >= 2
 
 
 def segmentar_codigo(doc: Documento) -> tuple[ResultadoProva, dict[int, str]]:
@@ -29,16 +41,15 @@ def segmentar_codigo(doc: Documento) -> tuple[ResultadoProva, dict[int, str]]:
     recentes: list[Bloco] = []
     secao = None
     for l in doc.linhas:
-        m = _ITEM_COD.match(l.texto)
+        m = _casa_item(l.texto)
         if m:
-            n = int(m.group(1))
-            r = m.group(3).upper()
-            r = "X" if m.group(4) else _RESP.get(r, r)
-            orig = _RESP.get(m.group(3).upper(), m.group(3).upper())
-            atual = Item(n, "CE" if orig in ("C", "E") else "ME", secao=secao,
-                         numero_bruto=m.group(1))
-            atual.codigo_item = m.group(2)
-            atual.linhas.append(Linha(l.pagina, l.col, l.x0, l.y0, l.x1, l.y1, m.group(5), l.tamanho, l.origem))
+            num, cod, resp, anul, txt = m
+            n = int(num)
+            orig = _RESP.get(resp.upper(), resp.upper())
+            r = "X" if anul else orig
+            atual = Item(n, "CE" if orig in ("C", "E") else "ME", secao=secao, numero_bruto=num)
+            atual.codigo_item = cod
+            atual.linhas.append(Linha(l.pagina, l.col, l.x0, l.y0, l.x1, l.y1, txt, l.tamanho, l.origem))
             atual.blocos_anteriores = list(recentes)
             atual.bloco = recentes[-1] if recentes else None
             itens.append(atual)

@@ -102,6 +102,25 @@ def _upsert_documentos(con, concurso_id: int, slug: str, det: dict) -> tuple[int
     return len(urls_atuais), novos
 
 
+def reclassificar(con) -> int:
+    """Reaplica as regras de classificação aos documentos já coletados (offline). Retorna nº de alterações."""
+    n = 0
+    for d in con.execute("SELECT id, concurso_id, nome_arquivo, descricao, extensao, tipo, modalidade, acessibilidade, "
+                         "versao, cargo, caderno, codigo_prova, bloco, revisar FROM documento").fetchall():
+        c = classificar(d["nome_arquivo"], d["descricao"], d["extensao"])
+        novo = (c.tipo, c.modalidade, int(c.acessibilidade), c.versao, c.cargo, c.caderno, c.codigo_prova, c.bloco,
+                int(c.revisar))
+        atual = (d["tipo"], d["modalidade"], d["acessibilidade"], d["versao"], d["cargo"], d["caderno"],
+                 d["codigo_prova"], d["bloco"], d["revisar"])
+        if novo != atual:
+            con.execute("UPDATE documento SET tipo=?, modalidade=?, acessibilidade=?, versao=?, cargo=?, caderno=?, "
+                        "codigo_prova=?, bloco=?, revisar=?, motivo_revisao=? WHERE id=?",
+                        (*novo, "; ".join(c.motivos) or None, d["id"]))
+            n += 1
+    con.commit()
+    return n
+
+
 def recalcular_ano(con, concurso_id: int) -> None:
     """Aplica a precedência de ano com o que já se sabe (inclui ano_edital/ano_aplicacao vindos dos PDFs)."""
     c = con.execute("SELECT * FROM concurso WHERE id=?", (concurso_id,)).fetchone()

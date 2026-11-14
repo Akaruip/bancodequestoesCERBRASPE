@@ -153,7 +153,7 @@ def classificar(nome_arquivo: str, descricao: str | None, extensao: str | None =
         c.tipo = "outro"
 
     if c.tipo in TIPOS_CONTEUDO and c.modalidade is None:
-        if re.search(r"DISCURSIVA|REDACAO|\bDISC\b|SUBJETIVA", nd):
+        if re.search(r"DISCURSIVA|REDACAO|\bDISC\b|SUBJETIVA|PROVA ESCRITA|PECA PROCESSUAL|PARECER|ESTUDO DE CASO", nd):
             c.modalidade = "discursiva"
         elif re.search(r"OBJETIVA|CONHECIMENTOS|\bCB\d|\bCG\d", nd) or c.tipo.startswith("gabarito"):
             c.modalidade = "objetiva"

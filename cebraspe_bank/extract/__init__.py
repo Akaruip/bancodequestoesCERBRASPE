@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 from .. import anos, config, db
-from ..crawl import recalcular_ano
+from ..crawl import recalcular_ano, reclassificar
 from ..texto import norm
 from . import combinado, gabarito as gab, justificativa as just
 from .pdf import Documento, ler, recorte
@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 TIPOS_PROVA = ("prova", "prova_com_gabarito_preliminar", "prova_com_gabarito_definitivo")
 TIPOS_GAB = ("gabarito_preliminar", "gabarito_definitivo")
-VERSAO_EXTRATOR = "4"
+VERSAO_EXTRATOR = "5"
 
 
 def _abs(p: str) -> Path:
@@ -395,8 +395,22 @@ def _aplica_padroes(con, concurso_id: int) -> None:
     discs = con.execute("SELECT p.id, p.cargo, d.descricao FROM prova p JOIN documento d ON d.id=p.documento_id "
                         "WHERE p.concurso_id=? AND EXISTS (SELECT 1 FROM questao q WHERE q.prova_id=p.id AND q.tipo='DISC')",
                         (concurso_id,)).fetchall()
+    genericas = {"PADRAO", "PADROES", "DEFINITIVO", "DEFINITIVOS", "PRELIMINAR", "PRELIMINARES", "PROVISORIO", "DE",
+                 "DA", "DO", "RESPOSTA", "RESPOSTAS", "PROVA", "PROVAS", "DISCURSIVA", "DISCURSIVAS", "ESCRITA", "E", "A",
+                 "O", "PARA", "OS", "AS", "TODOS", "CADERNO"}
+
+    def toks(t):
+        return {x for x in re.findall(r"[A-Z0-9]+", norm(t)) if x not in genericas}
+
     for pad in pads:
         alvo = [p for p in discs if p["cargo"] and pad["cargo"] and norm(p["cargo"]) == norm(pad["cargo"])]
+        if not alvo:
+            tp = toks(f"{pad['descricao'] or ''} {pad['cargo'] or ''}")
+            if tp:
+                alvo = [p for p in discs if tp <= toks(f"{p['descricao'] or ''} {p['cargo'] or ''}")]
+                if len(alvo) > 1:   # prefere a correspondência exata do conjunto de palavras
+                    exatos = [p for p in alvo if toks(f"{p['descricao'] or ''} {p['cargo'] or ''}") == tp]
+                    alvo = exatos or alvo
         if not alvo and len(discs) == 1:
             alvo = discs
         if len(alvo) != 1:
@@ -457,7 +471,8 @@ def extract(con, slugs=None, ano=None, desde=None, refazer: bool = False) -> dic
     if desde:
         q += " AND ano>=?"
         args.append(desde)
-    st = {"concursos": 0, "gabaritos": 0, "provas": 0, "justificativas": 0, "erros": 0, "pulados": 0}
+    st = {"concursos": 0, "gabaritos": 0, "provas": 0, "justificativas": 0, "erros": 0, "pulados": 0,
+          "reclassificados": reclassificar(con)}
     for c in con.execute(q + " ORDER BY ano DESC, slug", args).fetchall():
         docs = con.execute(
             "SELECT * FROM documento WHERE concurso_id=? AND arquivo_local IS NOT NULL AND sha256 IS NOT NULL "
