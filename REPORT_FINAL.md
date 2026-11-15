@@ -1,6 +1,6 @@
 # Relatório final — banco de questões Cebraspe
 
-Gerado em 2026-11-14T23:30:05+00:00 a partir de `cebraspe.db`.
+Gerado em 2026-11-15T00:24:44+00:00 a partir de `cebraspe.db`.
 
 ## Visão geral
 
@@ -10,23 +10,25 @@ Gerado em 2026-11-14T23:30:05+00:00 a partir de `cebraspe.db`.
 | Concursos com detalhe na API | 465 |
 | Concursos com provas extraídas | 426 |
 | Documentos baixados | 11152 (2.70 GB) |
-| Provas processadas | 5209 |
-| Provas com extração completa | 4938 (94.8%) |
-| Provas parciais / falhas | 252 / 19 |
+| Provas processadas | 5212 |
+| Provas com extração completa | 4948 (94.9%) |
+| Provas parciais / falhas | 245 / 19 |
 
 ## Questões por tipo
 
 | Tipo | Questões |
 |---|---|
-| CE | 156715 |
+| CE | 156679 |
 | ME | 53199 |
-| DISC | 9393 |
+| DISC | 9397 |
 
 ## Gabaritos
 
+Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **10821** (5.2% de 209878). Cada caso tem pendência com o motivo.
+
 | Com definitivo | Com preliminar | Anuladas | Alteradas | Com justificativa | Com padrão de resposta |
 |---|---|---|---|---|---|
-| 188916 | 21722 | 5624 | 889 | 12544 | 6117 |
+| 188887 | 21722 | 5624 | 889 | 12544 | 6119 |
 
 ## Concursos e questões por ano
 
@@ -36,13 +38,13 @@ Gerado em 2026-11-14T23:30:05+00:00 a partir de `cebraspe.db`.
 | 2014 | 4 | 0 | 0 |
 | 2015 | 35 | 66 | 3343 |
 | 2016 | 21 | 324 | 13323 |
-| 2017 | 31 | 254 | 12771 |
+| 2017 | 31 | 254 | 12757 |
 | 2018 | 37 | 445 | 21457 |
-| 2019 | 24 | 184 | 10925 |
+| 2019 | 24 | 184 | 10913 |
 | 2020 | 28 | 285 | 14406 |
 | 2021 | 59 | 486 | 21571 |
-| 2022 | 52 | 435 | 17846 |
-| 2023 | 57 | 718 | 27963 |
+| 2022 | 52 | 438 | 17850 |
+| 2023 | 57 | 718 | 27953 |
 | 2024 | 47 | 1063 | 39959 |
 | 2025 | 50 | 584 | 20823 |
 | 2026 | 54 | 365 | 14920 |
@@ -63,7 +65,7 @@ Lista completa em `data/pendencias.csv`.
 
 | Etapa | Motivo (números agrupados) | Ocorrências |
 |---|---|---|
-| ano | concurso sem ano identificável | 1 |
+| ano | concurso sem ano identificável | 2 |
 | classificacao | prova inferida só pelo nome do arquivo | 23 |
 | classificacao | gabarito sem fase clara (preliminar/definitivo) | 8 |
 | classificacao | gabarito sem fase clara (preliminar/definitivo); sem código de prova no nome (vínculo depende do texto do PDF) | 1 |
@@ -72,13 +74,13 @@ Lista completa em `data/pendencias.csv`.
 | download | HTTP N | 10 |
 | download | nome do arquivo corrompido na API (caractere inválido); URL irrecuperável | 7 |
 | extracao | nenhuma questão segmentada | 26 |
-| gabarito | padrão de resposta sem prova discursiva correspondente (N candidatas) | 335 |
+| gabarito | padrão de resposta sem prova discursiva correspondente (N candidatas) | 332 |
 | gabarito | prova com gabarito embutido, mas nenhuma resposta reconhecida | 29 |
 | gabarito | justificativas da seção 'None' sem prova correspondente | 21 |
 | gabarito | item N com duas respostas (E/C) | 21 |
 | gabarito | justificativas: nenhuma linha de tabela reconhecida | 18 |
 | gabarito | item N com duas respostas (C/E) | 18 |
-| gabarito | nenhuma tabela de gabarito reconhecida no PDF | 16 |
+| gabarito | nenhuma tabela de gabarito reconhecida no PDF | 17 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODAS AS OPÇÕES DO CARGO DE PESQUISADOR / OPÇÃO N: PESQUISADOR – ÁREA: CIÊNCIAS AGRÁRIAS  | 12 |
 | gabarito | item N com duas respostas (A/C) | 12 |
 | gabarito | item N com duas respostas (E/D) | 10 |
@@ -96,6 +98,7 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | item N com duas respostas (C/B) | 7 |
 | gabarito | fase no PDF (preliminar) difere da classificação (definitivo) | 6 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL MÉDIO / CARGO N: ANALISTA MINISTERIAL ESPECIALIZADO – ÁREA DE AT | 6 |
+| gabarito | itens […] com respostas diferentes na mesma página (ex.: opções de língua estrangeira); deixados sem resposta | 6 |
 | gabarito | item N com duas respostas (B/C) | 6 |
 | gabarito | item N com duas respostas (D/E) | 6 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N – ÁREA N' sem prova correspondente | 5 |
@@ -139,6 +142,7 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'BLOCO II / PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ASSISTENTE DE PROJETO – UGP' ambíguas entre N provas | 2 |
 | gabarito | item N com duas respostas (X/C) | 2 |
 | gabarito | item N com duas respostas (A/D) | 2 |
+| gabarito | tabela não confiável: N itens com respostas conflitantes; descartada | 1 |
 | gabarito | justificativas da seção 'Área Profissional: Saúde Coletiva – Programa: Multiprofissional em Atenção Básica' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'Área Profissional: Enfermagem – Programas: Multiprofissional em Atenção Básica e Atenção Cardíaca' sem prova corres | 1 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: ULTRA | 1 |
@@ -527,9 +531,18 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | item N com duas respostas (E/X) | 1 |
 | gabarito | item N com duas respostas (C/X) | 1 |
 | gabarito | fase no PDF (definitivo) difere da classificação (preliminar) | 1 |
-| validacao | N questão(ões) sem gabarito: […] | 205 |
-| validacao | nº de itens extraídos (N) difere do gabarito (N) | 139 |
+| validacao | N questão(ões) sem gabarito: […] | 197 |
+| validacao | nº de itens extraídos (N) difere do gabarito (N) | 132 |
 | validacao | prova sem gabarito vinculado | 112 |
+
+## Observações de método
+
+- Nada é estimado: resposta, ano ou texto que não pôde ser lido fica NULL e gera pendência.
+- `alterada=1` só quando há evidência (preliminar e definitivo publicados, ou tabela de justificativas). O site costuma retirar o gabarito preliminar após o definitivo, então a ausência de alteração não é prova de que o item não mudou.
+- Itens com respostas diferentes na mesma tabela (ex.: opções de língua estrangeira) ficam sem resposta.
+- Versões de acessibilidade (adaptada, superampliada, ledor, braile, VLibras) foram ignoradas.
+- Números de itens ofuscados (substituição de glifos, comum em 2015–2017) são decodificados pela restrição de sequência consecutiva.
+
 
 ### Concursos sem detalhe na API
 
