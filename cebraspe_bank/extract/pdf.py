@@ -103,14 +103,15 @@ def _divisor(words, W: float) -> float:
     """x da margem esquerda da coluna direita: x0 frequente na faixa central que quase nenhuma palavra atravessa."""
     xs = collections.Counter(round(w[0]) for w in words if 0.40 * W <= w[0] <= 0.62 * W)
     melhor = None
+    tol = max(2, int(0.01 * len(words)))
     for x, n in xs.items():
         if n < 2:
             continue
         cruz = sum(1 for w in words if w[0] < x - 3 and w[2] > x - 1)
-        chave = (cruz, x)          # sem cruzamentos; empate -> a menor x (margem, não o recuo)
+        chave = (cruz > tol, x)    # poucos cruzamentos (títulos de largura total) -> a menor x (margem, não o recuo)
         if melhor is None or chave < melhor[0]:
             melhor = (chave, x)
-    if melhor and melhor[0][0] <= max(2, 0.02 * len(words)):
+    if melhor and not melhor[0][0]:
         return float(melhor[1])
     return W / 2
 

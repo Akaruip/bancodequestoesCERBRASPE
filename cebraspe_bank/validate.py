@@ -91,7 +91,7 @@ def gerar_revisao(con, n: int, seed: int, fq: str = "", fa: list | None = None) 
         lado_esq = "".join(f'<img class="pag" src="{e(str(i))}">' for i in imgs) or "<p>(página indisponível)</p>"
         blocos.append(f"""
 <section>
-  <h2>{k}. {e(q['slug'])} ({q['ano']}) — questão {q['numero']} [{q['tipo']}] — pág. {q['pagina']}</h2>
+  <h2>{k}. {e(q['slug'])} ({q['ano']}) — questão {q['numero']}{' — ' + e(q['variante']) if q['variante'] else ''} [{q['tipo']}] — pág. {q['pagina']}</h2>
   <p class="meta">{e(q['nome_arquivo'])} · cargo: {e(q['cargo'] or '-')} · caderno: {e(q['caderno'] or '-')} ·
      código: {e(q['codigo_prova'] or '-')} · seção: {e(q['secao'] or '-')} · texto: {q['origem_texto']} ·
      <a href="{e(q['url'])}">PDF original</a></p>

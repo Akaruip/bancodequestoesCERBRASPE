@@ -23,6 +23,7 @@ _COD = re.compile(r"\b(\d{3}_?[A-Z0-9]+(?:_[A-Z0-9]+)*?_\d{2,3})\b")
 class GabaritoPagina:
     pagina: int
     respostas: dict[int, str] = field(default_factory=dict)
+    variantes: dict[str, dict[int, str]] = field(default_factory=dict)   # ex.: {"LÍNGUA INGLESA": {1: "C", ...}}
     codigo_prova: str | None = None
     caderno: str | None = None
     cargo: str | None = None
@@ -74,6 +75,68 @@ def _eh_resposta(tok: str) -> bool:
     return tok.upper() in RESPOSTAS or tok in _VAZIO
 
 
+_LINGUA = re.compile(r"L[ÍI]NGUA\s+(INGLESA|ESPANHOLA|FRANCESA|ALEM[ÃA]|ITALIANA|PORTUGUESA)", re.I)
+
+
+def _cor(c) -> tuple | None:
+    if not c:
+        return None
+    c = tuple(round(float(v), 2) for v in c[:3])
+    return None if all(v >= 0.95 for v in c) else c
+
+
+def _mesma_cor(a, b, tol=0.06) -> bool:
+    return a is not None and b is not None and all(abs(x - y) <= tol for x, y in zip(a, b))
+
+
+def _preenchimentos(page) -> list[tuple]:
+    out = []
+    for d in page.get_drawings():
+        c = _cor(d.get("fill"))
+        r = d.get("rect")
+        if c and r is not None and r.width < page.rect.width * 0.95 and r.height < page.rect.height * 0.5:
+            out.append((r, c))
+    return out
+
+
+def _legenda(linhas, fills) -> dict[tuple, str]:
+    """cor -> rótulo (ex.: 'LÍNGUA INGLESA'), a partir das amostras de cor ao lado do texto da legenda."""
+    leg: dict[tuple, str] = {}
+    for _, lw in linhas:
+        texto = " ".join(w[4] for w in lw)
+        m = _LINGUA.search(texto)
+        if not m:
+            continue
+        ini = next((w for w in lw if _LINGUA.match(w[4] + " " + "X") or w[4].upper().startswith(("LÍNGUA", "LINGUA"))), lw[0])
+        yc = (ini[1] + ini[3]) / 2
+        cand = [(r, c) for r, c in fills if r.y0 - 2 <= yc <= r.y1 + 2 and r.x1 <= ini[0] + 4 and r.x1 >= ini[0] - 60
+                and r.width < 80]
+        if cand:
+            r, c = max(cand, key=lambda rc: rc[0].x1)
+            leg[c] = norm(m.group(0)).replace("LINGUA", "LÍNGUA")
+    return leg
+
+
+def _rotulo(cor, legenda: dict[tuple, str]) -> str | None:
+    """Rótulo da legenda para a cor da célula: igual, ou a mais próxima sem ambiguidade."""
+    if cor is None or not legenda:
+        return None
+    for c, lab in legenda.items():
+        if _mesma_cor(c, cor):
+            return lab
+    dist = sorted((sum((a - b) ** 2 for a, b in zip(c, cor)) ** 0.5, lab) for c, lab in legenda.items())
+    if dist[0][0] <= 0.45 and (len(dist) == 1 or dist[1][0] >= 2 * dist[0][0] + 0.2):
+        return dist[0][1]
+    return None
+
+
+def _cor_celula(x, y, fills) -> tuple | None:
+    dentro = [(r, c) for r, c in fills if r.x0 - 0.5 <= x <= r.x1 + 0.5 and r.y0 - 0.5 <= y <= r.y1 + 0.5]
+    if not dentro:
+        return None
+    return min(dentro, key=lambda rc: rc[0].get_area())[1]
+
+
 def parse_pagina(page, pno: int) -> GabaritoPagina:
     words, origem = _palavras(page)
     g = GabaritoPagina(pno, origem=origem)
@@ -98,6 +161,8 @@ def parse_pagina(page, pno: int) -> GabaritoPagina:
     g.data_aplicacao = anos.data_aplicacao_texto(texto)
 
     conflitos: set[int] = set()
+    fills = _preenchimentos(page) if origem == "pdf" else []
+    legenda = _legenda(linhas, fills) if fills else {}
     for i, (yc, lw) in enumerate(linhas):
         nums = _linha_numeros(lw)
         if not nums:
@@ -123,6 +188,16 @@ def parse_pagina(page, pno: int) -> GabaritoPagina:
                 continue
             r = "X" if "X" in toks else toks[0]
             num = int(n[4])
+            cor = _cor_celula(cx, (n[1] + n[3]) / 2, fills) if legenda else None
+            rot = _rotulo(cor, legenda)
+            if rot:
+                alvo = g.variantes.setdefault(rot, {})
+                if num in alvo and alvo[num] != r:
+                    g.avisos.append(f"item {num} ({rot}) com duas respostas; deixado sem resposta")
+                    alvo.pop(num, None)
+                    continue
+                alvo[num] = r
+                continue
             if num in g.respostas and g.respostas[num] != r:
                 conflitos.add(num)
             g.respostas[num] = r
@@ -143,7 +218,7 @@ def parse(caminho: Path | str) -> list[GabaritoPagina]:
     with pymupdf.open(caminho) as pdf:
         for pno, page in enumerate(pdf):
             g = parse_pagina(page, pno)
-            if g.respostas:
+            if g.respostas or g.variantes:
                 out.append(g)
     return out
 
@@ -160,6 +235,8 @@ def agrupa(paginas: list[GabaritoPagina]) -> list[GabaritoPagina]:
         if res and (g.codigo_prova in (None, res[-1].codigo_prova)) and g.caderno in (None, res[-1].caderno) \
                 and not (set(g.respostas) & set(res[-1].respostas)):
             res[-1].respostas.update(g.respostas)
+            for k, v in g.variantes.items():
+                res[-1].variantes.setdefault(k, {}).update(v)
             res[-1].avisos += g.avisos
         else:
             res.append(g)

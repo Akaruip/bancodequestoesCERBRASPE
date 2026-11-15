@@ -79,6 +79,12 @@ def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
           ]),
           "\n## Questões por tipo\n",
           _tab(["Tipo", "Questões"], por_tipo),
+          "\n### Itens de opção de língua estrangeira\n",
+          _tab(["Variante", "Questões", "Com gabarito definitivo"], con.execute(
+              f"""SELECT q.variante, COUNT(*), SUM(g.resposta_definitiva IS NOT NULL) FROM questao q
+                  JOIN prova p ON p.id=q.prova_id JOIN concurso c ON c.id=p.concurso_id
+                  LEFT JOIN gabarito g ON g.questao_id=q.id WHERE q.variante<>''{fq} GROUP BY 1 ORDER BY 2 DESC""",
+              fa).fetchall()),
           "\n## Gabaritos\n",
           f"Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **{sem_gab}** "
           f"({100.0 * sem_gab / max(1, n_obj):.1f}% de {n_obj}). Cada caso tem pendência com o motivo.\n",
@@ -97,7 +103,9 @@ def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
           "- `alterada=1` só quando há evidência (preliminar e definitivo publicados, ou tabela de justificativas). "
           "O site costuma retirar o gabarito preliminar após o definitivo, então a ausência de alteração não é prova "
           "de que o item não mudou.\n"
-          "- Itens com respostas diferentes na mesma tabela (ex.: opções de língua estrangeira) ficam sem resposta.\n"
+          "- Itens de opção de língua estrangeira (ex.: itens 1–10 em espanhol e em inglês) são guardados por língua "
+          "(`questao.variante`, `gabarito_bruto.variante`): na prova pelo título 'LÍNGUA X' de cada bloco e no "
+          "gabarito pela cor da célula e a legenda. Conflitos que a legenda não resolve ficam sem resposta.\n"
           "- Versões de acessibilidade (adaptada, superampliada, ledor, braile, VLibras) foram ignoradas.\n"
           "- Números de itens ofuscados (substituição de glifos, comum em 2015–2017) são decodificados pela "
           "restrição de sequência consecutiva.\n",

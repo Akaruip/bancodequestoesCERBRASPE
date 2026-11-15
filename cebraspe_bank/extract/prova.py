@@ -16,6 +16,7 @@ _FAIXA = re.compile(r"(?:itens|quest[õo]es)\s+(?:de\s+)?(\d{1,3})\s+(?:a|e)\s+(
 _JUST = re.compile(r"^\|\|JUSTIFICATIVAS?\|\|")
 _JUST_ALT = re.compile(r"^\|\|([A-E])\|\|\s*-?\s*(.*)$")
 _JUST_CE = re.compile(r"^JUSTIFICATIVAS?\s*[-–:]\s*(CERTO|ERRADO|CORRETO|INCORRETO|ANULAD)", re.I)
+_LINGUA = re.compile(r"^L[ÍI]NGUA\s+(INGLESA|ESPANHOLA|FRANCESA|ALEM[ÃA]|ITALIANA)\s*$", re.I)
 _ESPACO = re.compile(r"^espa[çc]o\s+livre$", re.I)
 
 
@@ -48,6 +49,7 @@ class Item:
     blocos_anteriores: list[Bloco] = field(default_factory=list)
     secao: str | None = None
     numero_bruto: str = ""
+    variante: str = ""                         # opção de língua estrangeira ('' = item comum)
 
     @property
     def enunciado(self) -> str:
@@ -68,6 +70,12 @@ class ResultadoProva:
     tipo: str                                  # CE | ME | DISC | misto
     cifra: str | None = None                   # mapa glifo->dígito usado nos números ofuscados
     avisos: list[str] = field(default_factory=list)
+
+
+def norm_lingua(t: str) -> str:
+    m = _LINGUA.match(t.strip())
+    nome = m.group(1).upper().replace("Ã", "A") if m else t.strip().upper()
+    return {"ALEMA": "ALEMÃ"}.get(nome, nome).join(["LÍNGUA ", ""])
 
 
 def _dig(t: str) -> bool:
@@ -187,6 +195,25 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
     def na_margem(l: Linha, tol=3.5) -> bool:
         return abs(l.x0 - margens.get((l.pagina, l.col), l.x0)) <= tol
 
+    # ---------- blocos de opção de língua estrangeira ("LÍNGUA ESPANHOLA", "LÍNGUA INGLESA" ...)
+    titulos_lingua = [i for i, l in enumerate(linhas) if _LINGUA.match(l.texto.strip())]
+    blocos_lingua: list[tuple[int, int, str]] = []      # (início, fim exclusivo, rótulo)
+
+    lado_a_lado: list[tuple[Linha, str]] = []          # (título, rótulo) quando os blocos ficam em colunas
+    numeros_lingua: set[int] = set()
+
+    def rotulo_lingua(i: int, n: int | None = None) -> str:
+        if lado_a_lado:
+            l = linhas[i]
+            for t, lab in lado_a_lado:
+                if l.pagina == t.pagina and l.col == t.col and l.y0 >= t.y0 and (n is None or n in numeros_lingua):
+                    return lab
+            return ""
+        for a, b, lab in blocos_lingua:
+            if a <= i < b:
+                return lab
+        return ""
+
     # ---------- formato de múltipla escolha / discursiva com "Questão N"
     def cab_questao(l: Linha) -> bool:
         m = _QUESTAO.match(l.texto)
@@ -194,6 +221,49 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
 
     n_quest = sum(1 for l in linhas if cab_questao(l))
     formato_me = n_quest >= 1
+
+    def numero_inicio(i: int) -> int | None:
+        l = linhas[i]
+        if formato_me:
+            m = _QUESTAO.match(l.texto)
+            return int(m.group(1)) if m and cab_questao(l) else None
+        p = l.palavras
+        if p and _dig(p[0]) and len(p[0]) <= 3 and na_margem(l) and not (l.tam0 and l.tam0 < 6.5):
+            return int(p[0])
+        return None
+
+    tl = [linhas[i] for i in titulos_lingua]
+    if len(tl) >= 2 and len({(t.pagina, t.col) for t in tl}) == len(tl) and len({t.pagina for t in tl}) == 1 \
+            and max(t.y0 for t in tl) - min(t.y0 for t in tl) < 8:
+        lado_a_lado = [(t, norm_lingua(t.texto)) for t in tl]
+        conj = []
+        for t, _ in lado_a_lado:
+            conj.append({n for i, l in enumerate(linhas) if l.pagina == t.pagina and l.col == t.col and l.y0 > t.y0
+                         for n in [numero_inicio(i)] if n is not None})
+        numeros_lingua = set.intersection(*conj) if conj else set()
+        if numeros_lingua:
+            avisos.append("blocos de língua estrangeira lado a lado: " + ", ".join(lab for _, lab in lado_a_lado))
+        else:
+            lado_a_lado = []
+    elif len(titulos_lingua) >= 2:
+        rot = [norm_lingua(linhas[i].texto) for i in titulos_lingua]
+        for j, ini in enumerate(titulos_lingua[:-1]):
+            blocos_lingua.append((ini, titulos_lingua[j + 1], rot[j]))
+        nums_1 = [n for i in range(*blocos_lingua[0][:2]) for n in [numero_inicio(i)] if n is not None]
+        kmax = max(nums_1) if nums_1 else None
+        fim = len(linhas)
+        if kmax is not None:
+            for i in range(titulos_lingua[-1] + 1, len(linhas)):
+                n = numero_inicio(i)
+                if (n is not None and n > kmax) or _secao(linhas[i]):
+                    fim = i
+                    break
+        blocos_lingua.append((titulos_lingua[-1], fim, rot[-1]))
+        conjuntos = [{n for i in range(a, b) for n in [numero_inicio(i)] if n is not None} for a, b, _ in blocos_lingua]
+        if not conjuntos[0] or not all(c & conjuntos[0] for c in conjuntos[1:]):
+            blocos_lingua = []          # numeração não se repete: seções obrigatórias, não opções de língua
+        else:
+            avisos.append("blocos de língua estrangeira: " + ", ".join(f"{lab}" for _, _, lab in blocos_lingua))
 
     # ---------- candidatos a início de item C/E
     cands: list[tuple[int, str, str]] = []     # (índice da linha, token, fonte)
@@ -219,7 +289,15 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
     numerados: list[tuple[int, int, str]] = []
     if cands:
         diretos = [(i, int(t), t) for i, t, _ in cands if _dig(t)]
-        numerados = _cadeia(diretos, esperados)
+        if blocos_lingua or lado_a_lado:
+            rotulos = [lab for _, _, lab in blocos_lingua] or [lab for _, lab in lado_a_lado]
+            principal = [x for x in diretos if rotulo_lingua(x[0], x[1]) in ("", rotulos[0])]
+            numerados = _cadeia(principal, esperados)
+            for lab in rotulos[1:]:
+                numerados += _cadeia([x for x in diretos if rotulo_lingua(x[0], x[1]) == lab], None)
+            numerados.sort()
+        else:
+            numerados = _cadeia(diretos, esperados)
         if any(not _dig(t) for _, t, _ in cands):
             mapa = _resolve_substituicao(cands)
             if mapa:
@@ -251,6 +329,11 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
         recentes.append(bloco)
 
     for i, l in enumerate(linhas):
+        if (blocos_lingua or lado_a_lado) and i in titulos_lingua:
+            atual = None
+            bloco = None
+            recentes.clear()
+            continue
         s = _secao(l)
         if s:
             secao = s
@@ -262,7 +345,7 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
             m = _QUESTAO.match(l.texto)
             if m and cab_questao(l):
                 atual = Item(int(m.group(1)), "DISC" if modalidade == "discursiva" else "ME", secao=secao,
-                             numero_bruto=m.group(1))
+                             numero_bruto=m.group(1), variante=rotulo_lingua(i, int(m.group(1))))
                 if m.group(2):
                     atual.linhas.append(Linha(l.pagina, l.col, l.x0, l.y0, l.x1, l.y1, m.group(2), l.tamanho, l.origem))
                 _vincula(atual, recentes)
@@ -310,7 +393,8 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
         if i in inicio_item:
             n, tok = inicio_item[i]
             texto = l.texto[len(tok):].strip()
-            atual = Item(n, "DISC" if modalidade == "discursiva" else "CE", secao=secao, numero_bruto=tok)
+            atual = Item(n, "DISC" if modalidade == "discursiva" else "CE", secao=secao, numero_bruto=tok,
+                         variante=rotulo_lingua(i, n))
             atual.linhas.append(Linha(l.pagina, l.col, l.x0, l.y0, l.x1, l.y1, texto, l.tamanho, l.origem))
             _vincula(atual, recentes)
             itens.append(atual)

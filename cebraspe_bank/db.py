@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS questao (
     id                INTEGER PRIMARY KEY,
     prova_id          INTEGER NOT NULL REFERENCES prova(id) ON DELETE CASCADE,
     numero            INTEGER NOT NULL,
+    variante          TEXT NOT NULL DEFAULT '',   -- opção de língua estrangeira ('' = item comum)
     tipo              TEXT NOT NULL CHECK (tipo IN ('CE','ME','DISC')),
     texto_base_id     INTEGER REFERENCES texto_base(id),
     enunciado         TEXT NOT NULL,
@@ -120,7 +121,7 @@ CREATE TABLE IF NOT EXISTS questao (
     secao             TEXT,              -- marcador de bloco da prova ("CONHECIMENTOS BÁSICOS" ...)
     origem_texto      TEXT NOT NULL DEFAULT 'pdf',  -- pdf | ocr
     pagina            INTEGER,
-    UNIQUE (prova_id, numero, tipo)
+    UNIQUE (prova_id, numero, tipo, variante)
 );
 
 CREATE TABLE IF NOT EXISTS gabarito (
@@ -146,9 +147,10 @@ CREATE TABLE IF NOT EXISTS gabarito_bruto (
     caderno      TEXT,
     cargo        TEXT,
     fase         TEXT NOT NULL,          -- preliminar | definitivo
+    variante     TEXT NOT NULL DEFAULT '', -- '' = item comum; 'LÍNGUA INGLESA' etc. = item de opção de língua
     numero       INTEGER NOT NULL,
     resposta     TEXT NOT NULL,          -- C | E | A..E | X
-    PRIMARY KEY (documento_id, grupo, numero)
+    PRIMARY KEY (documento_id, grupo, variante, numero)
 );
 
 CREATE TABLE IF NOT EXISTS gabarito_grupo (
@@ -206,7 +208,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS questao_fts USING fts5(
 # Índice pedido na especificação: (concurso, cargo, caderno, numero) — via view materializada em índices.
 EXTRA = r"""
 CREATE INDEX IF NOT EXISTS ix_prova_chave ON prova(concurso_id, cargo, caderno);
-CREATE INDEX IF NOT EXISTS ix_questao_num ON questao(prova_id, numero);
+CREATE INDEX IF NOT EXISTS ix_questao_num ON questao(prova_id, numero, variante);
 """
 
 
@@ -234,11 +236,13 @@ def _migra(con) -> None:
         for c in ("data_edital_pdf", "data_aplicacao"):
             if c not in cols("concurso"):
                 con.execute(f"ALTER TABLE concurso ADD COLUMN {c} TEXT")
-    derivadas = {"gabarito_bruto": "grupo", "questao": "secao", "gabarito": "padrao_resposta",
+    derivadas = {"gabarito_bruto": "variante", "questao": "variante", "gabarito": "padrao_resposta",
                  "texto_base": "tipo", "prova": "avisos", "questao_fts": "questao_id"}
     for t, c in derivadas.items():
         if t in existentes and c not in cols(t):
-            con.execute(f"DROP TABLE {t}")
+            con.execute(f"DROP TABLE IF EXISTS {t}")
+            if t == "questao" and "questao_fts" in existentes:
+                con.execute("DROP TABLE IF EXISTS questao_fts")      # índice textual referencia ids de questao
     con.commit()
 
 

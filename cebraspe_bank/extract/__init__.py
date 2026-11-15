@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 TIPOS_PROVA = ("prova", "prova_com_gabarito_preliminar", "prova_com_gabarito_definitivo")
 TIPOS_GAB = ("gabarito_preliminar", "gabarito_definitivo")
-VERSAO_EXTRATOR = "10"
+VERSAO_EXTRATOR = "12"
 
 
 def _abs(p: str) -> Path:
@@ -39,19 +39,29 @@ def _marca(con, doc, status="ok"):
 
 # ---------------------------------------------------------------- gabaritos
 def _grava_grupo(con, doc_id, grupo, fase, respostas: dict[int, str], codigo=None, caderno=None, cargo=None,
-                 data_edital=None, data_aplicacao=None, origem="pdf"):
+                 data_edital=None, data_aplicacao=None, origem="pdf", variantes: dict[str, dict[int, str]] | None = None):
     con.execute("DELETE FROM gabarito_bruto WHERE documento_id=? AND grupo=?", (doc_id, grupo))
     con.execute(
         "INSERT OR REPLACE INTO gabarito_grupo(documento_id, grupo, codigo_prova, caderno, cargo, fase, data_edital, "
         "data_aplicacao, n, origem) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        (doc_id, grupo, codigo, caderno, cargo, fase, data_edital, data_aplicacao, len(respostas), origem))
+        (doc_id, grupo, codigo, caderno, cargo, fase, data_edital, data_aplicacao,
+         len(respostas) + sum(len(v) for v in (variantes or {}).values()), origem))
+    linhas = [(doc_id, grupo, codigo, caderno, cargo, fase, "", n, r) for n, r in sorted(respostas.items())]
+    for var, resp in (variantes or {}).items():
+        linhas += [(doc_id, grupo, codigo, caderno, cargo, fase, var, n, r) for n, r in sorted(resp.items())]
     con.executemany(
-        "INSERT INTO gabarito_bruto(documento_id, grupo, codigo_prova, caderno, cargo, fase, numero, resposta) "
-        "VALUES (?,?,?,?,?,?,?,?)",
-        [(doc_id, grupo, codigo, caderno, cargo, fase, n, r) for n, r in sorted(respostas.items())])
+        "INSERT INTO gabarito_bruto(documento_id, grupo, codigo_prova, caderno, cargo, fase, variante, numero, resposta) "
+        "VALUES (?,?,?,?,?,?,?,?,?)", linhas)
+
+
+def _resolve_doc(con, doc, etapas=("gabarito", "extracao")) -> None:
+    """Pendências do próprio documento são recalculadas a cada reprocessamento."""
+    con.execute(f"UPDATE pendencia SET resolvido_em=? WHERE resolvido_em IS NULL AND documento_id=? "
+                f"AND etapa IN ({','.join('?' * len(etapas))})", (db.agora(), doc["id"], *etapas))
 
 
 def _processa_gabarito(con, doc) -> None:
+    _resolve_doc(con, doc)
     caminho = _abs(doc["arquivo_local"])
     paginas = gab.parse_todas(caminho)
     for g in paginas:
@@ -71,7 +81,8 @@ def _processa_gabarito(con, doc) -> None:
             db.pendencia(con, "gabarito", f"fase no PDF ({g.fase}) difere da classificação ({fase_doc})",
                          doc["concurso_id"], doc["id"])
         _grava_grupo(con, doc["id"], k, fase, g.respostas, g.codigo_prova or doc["codigo_prova"],
-                     g.caderno or doc["caderno"], g.cargo or doc["cargo"], g.data_edital, g.data_aplicacao, g.origem)
+                     g.caderno or doc["caderno"], g.cargo or doc["cargo"], g.data_edital, g.data_aplicacao, g.origem,
+                     g.variantes)
         for a in g.avisos:
             db.pendencia(con, "gabarito", a, doc["concurso_id"], doc["id"])
     db.resolver_pendencias(con, "gabarito", doc["concurso_id"], doc["id"], "nenhuma tabela")
@@ -151,6 +162,7 @@ def _imagens(doc: Documento, res: ResultadoProva, destino_dir: Path) -> dict[int
 
 
 def _processa_prova(con, doc, concurso) -> None:
+    _resolve_doc(con, doc)
     caminho = _abs(doc["arquivo_local"])
     d = ler(caminho)
     esperados = None
@@ -162,6 +174,8 @@ def _processa_prova(con, doc, concurso) -> None:
         esperados = {r[0] for r in rows} or None
     res, resp_emb, formato = combinado.segmentar_auto(d, doc["modalidade"], esperados)
 
+    con.execute("DELETE FROM questao_fts WHERE questao_id IN (SELECT q.id FROM questao q JOIN prova p ON p.id=q.prova_id "
+                "WHERE p.documento_id=?)", (doc["id"],))
     con.execute("DELETE FROM prova WHERE documento_id=?", (doc["id"],))
     codigo = doc["codigo_prova"] or _codigo_barras(d)
     ano_ap = anos.ano_aplicacao_texto("\n".join(d.cabecalho[:3]))
@@ -191,16 +205,16 @@ def _processa_prova(con, doc, concurso) -> None:
         tb_ids[id(b)] = cur.lastrowid
     vistos = set()
     for it in res.itens:
-        if (it.numero, it.tipo) in vistos:
+        if (it.numero, it.tipo, it.variante) in vistos:
             avisos.append(f"item {it.numero} repetido na segmentação; mantida a 1ª ocorrência")
             continue
-        vistos.add((it.numero, it.tipo))
+        vistos.add((it.numero, it.tipo, it.variante))
         ocr = any(l.origem == "ocr" for l in it.linhas)
         alts = it.alternativas_texto() if it.alternativas else None
         cur = con.execute(
-            "INSERT INTO questao(prova_id, numero, tipo, texto_base_id, enunciado, alternativas_json, codigo_item, "
-            "secao, imagens, origem_texto, pagina) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-            (prova_id, it.numero, it.tipo, tb_ids.get(id(it.bloco)) if it.bloco else None, it.enunciado,
+            "INSERT INTO questao(prova_id, numero, variante, tipo, texto_base_id, enunciado, alternativas_json, "
+            "codigo_item, secao, imagens, origem_texto, pagina) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (prova_id, it.numero, it.variante, it.tipo, tb_ids.get(id(it.bloco)) if it.bloco else None, it.enunciado,
              json.dumps(alts, ensure_ascii=False) if alts else None, getattr(it, "codigo_item", None), it.secao,
              json.dumps(imgs.get(id(it))) if imgs.get(id(it)) else None, "ocr" if ocr else "pdf", it.pagina + 1))
         qid = cur.lastrowid
@@ -236,6 +250,7 @@ def _processa_prova(con, doc, concurso) -> None:
 
 # ---------------------------------------------------------------- justificativas e padrões
 def _processa_justificativa(con, doc) -> None:
+    _resolve_doc(con, doc)
     linhas = just.parse(ler(_abs(doc["arquivo_local"])))
     con.execute("DELETE FROM justificativa_bruta WHERE documento_id=?", (doc["id"],))
     con.executemany(
@@ -268,13 +283,13 @@ def vincular(con, concurso_id: int) -> None:
         "SELECT g.*, d.descricao, d.tipo AS doc_tipo, d.versao FROM gabarito_grupo g JOIN documento d ON d.id=g.documento_id "
         "WHERE d.concurso_id=?", (concurso_id,)).fetchall()
     respostas = {}
-    for r in con.execute("SELECT b.documento_id, b.grupo, b.numero, b.resposta FROM gabarito_bruto b JOIN documento d "
-                         "ON d.id=b.documento_id WHERE d.concurso_id=?", (concurso_id,)):
-        respostas.setdefault((r[0], r[1]), {})[r[2]] = r[3]
+    for r in con.execute("SELECT b.documento_id, b.grupo, b.variante, b.numero, b.resposta FROM gabarito_bruto b "
+                         "JOIN documento d ON d.id=b.documento_id WHERE d.concurso_id=?", (concurso_id,)):
+        respostas.setdefault((r[0], r[1]), {})[(r[2], r[3])] = r[4]
     datas_ed, datas_ap = [], []
     for p in provas:
-        qs = con.execute("SELECT id, numero, tipo FROM questao WHERE prova_id=?", (p["id"],)).fetchall()
-        nums = {q["numero"] for q in qs if q["tipo"] != "DISC"}
+        qs = con.execute("SELECT id, numero, tipo, variante FROM questao WHERE prova_id=?", (p["id"],)).fetchall()
+        nums = {(q["variante"], q["numero"]) for q in qs if q["tipo"] != "DISC"}
         escolhido: dict[str, tuple] = {}
         for g in grupos:
             r = respostas.get((g["documento_id"], g["grupo"]), {})
@@ -309,8 +324,8 @@ def vincular(con, concurso_id: int) -> None:
             if q["tipo"] == "DISC":
                 con.execute("INSERT OR IGNORE INTO gabarito(questao_id) VALUES (?)", (q["id"],))
                 continue
-            rp = pre[2].get(q["numero"]) if pre else None
-            rd = de[2].get(q["numero"]) if de else None
+            rp = _resposta(pre[2], q["variante"], q["numero"]) if pre else None
+            rd = _resposta(de[2], q["variante"], q["numero"]) if de else None
             if rp is None and rd is None:
                 continue
             n_gab += 1
@@ -337,6 +352,16 @@ def vincular(con, concurso_id: int) -> None:
     con.execute("UPDATE prova SET ano=(SELECT ano FROM concurso WHERE id=?) WHERE concurso_id=?", (concurso_id, concurso_id))
 
 
+def _resposta(mapa: dict, variante: str, numero: int) -> str | None:
+    """Resposta do item (variante, número). Item de língua só herda a resposta comum se o gabarito não tem variantes;
+    item comum nunca herda a de uma variante."""
+    if (variante, numero) in mapa:
+        return mapa[(variante, numero)]
+    if variante and not any(v for v, _ in mapa):
+        return mapa.get(("", numero))
+    return None
+
+
 def _aplica_justificativas(con, concurso_id: int) -> None:
     linhas = con.execute("SELECT j.* FROM justificativa_bruta j JOIN documento d ON d.id=j.documento_id "
                          "WHERE d.concurso_id=? ORDER BY j.documento_id, j.ordem", (concurso_id,)).fetchall()
@@ -344,10 +369,10 @@ def _aplica_justificativas(con, concurso_id: int) -> None:
         return
     defin = {}
     for r in con.execute(
-            "SELECT q.prova_id, q.numero, q.id, g.resposta_definitiva, g.resposta_preliminar FROM questao q "
+            "SELECT q.prova_id, q.numero, q.id, g.resposta_definitiva, g.resposta_preliminar, q.variante FROM questao q "
             "JOIN prova p ON p.id=q.prova_id LEFT JOIN gabarito g ON g.questao_id=q.id "
             "WHERE p.concurso_id=? AND q.tipo<>'DISC'", (concurso_id,)):
-        defin.setdefault(r[0], {})[r[1]] = (r[2], r[3], r[4])
+        defin.setdefault(r[0], {})[(r[5], r[1])] = (r[2], r[3], r[4])
     secoes: dict[tuple, list] = {}
     for l in linhas:
         secoes.setdefault((l["documento_id"], l["secao"]), []).append(l)
@@ -358,9 +383,11 @@ def _aplica_justificativas(con, concurso_id: int) -> None:
                  "PARA", "O", "OS", "A", "AS", "CARGO", "CARGOS", "TODOS", "NIVEL", "SUPERIOR", "MEDIO", "E", "BLOCO",
                  "I", "II", "III", "OBJETIVA", "OBJETIVAS", "EM", "AREA", "ESPECIALIDADE", "-", "/", "|"}
     for (doc_id, secao), ls in secoes.items():
+        m_l = re.search(r"L[ÍI]NGUA\s+(INGLESA|ESPANHOLA|FRANCESA|ALEM[ÃA]|ITALIANA)", secao or "", re.I)
+        var = f"LÍNGUA {norm(m_l.group(1))}".replace("ALEMA", "ALEMÃ") if m_l else ""
         placar = []
         for pid, mapa in defin.items():
-            ok = sum(1 for l in ls if l["numero"] in mapa and mapa[l["numero"]][1] == l["definitiva"])
+            ok = sum(1 for l in ls if (q := _chave_just(mapa, var, l["numero"])) and q[1] == l["definitiva"])
             if ok >= max(1, 0.5 * len(ls)):
                 placar.append((ok, pid))
         if not placar:
@@ -380,12 +407,20 @@ def _aplica_justificativas(con, concurso_id: int) -> None:
                          concurso_id, doc_id)
             continue
         for melhor in alvos:
-            _grava_just(con, ls, defin[melhor], doc_id)
+            _grava_just(con, ls, defin[melhor], doc_id, var)
 
 
-def _grava_just(con, ls, mapa, doc_id) -> None:
+def _chave_just(mapa: dict, var: str, numero: int):
+    if (var, numero) in mapa:
+        return mapa[(var, numero)]
+    if var and not any(v for v, _ in mapa):
+        return mapa.get(("", numero))
+    return None
+
+
+def _grava_just(con, ls, mapa, doc_id, var: str = "") -> None:
     for l in ls:
-        q = mapa.get(l["numero"])
+        q = _chave_just(mapa, var, l["numero"])
         if not q:
             continue
         texto = f"[{l['situacao']}] {l['texto']}".strip() if l["situacao"] else l["texto"]

@@ -54,3 +54,18 @@ def test_classificacao():
     assert classificar("x.pdf", "CADERNO DE PROVA - 16: PROFESSOR (SALAS DE RECURSOS)").tipo == "prova"
     assert classificar("Malote1.pdf", "questões - prova oral - malote 1").tipo == "outro"
     assert classificar("x.pdf", "Relação final dos candidatos com a inscrição deferida").tipo == "outro"
+
+
+def test_lingua_variantes():
+    from cebraspe_bank.extract.gabarito import _rotulo
+    from cebraspe_bank.extract.prova import norm_lingua
+    from cebraspe_bank.extract import _resposta
+    assert norm_lingua("Língua Espanhola ") == "LÍNGUA ESPANHOLA"
+    leg = {(1.0, 0.0, 0.0): "LÍNGUA INGLESA", (0.31, 0.51, 0.74): "LÍNGUA ESPANHOLA"}
+    assert _rotulo((1.0, 0.0, 0.0), leg) == "LÍNGUA INGLESA"
+    assert _rotulo((0.0, 0.44, 0.75), leg) == "LÍNGUA ESPANHOLA"     # tom diferente da amostra da legenda
+    assert _rotulo((0.5, 0.5, 0.5), {(1.0, 0.0, 0.0): "A", (0.0, 0.0, 1.0): "B"}) is None
+    mapa = {("", 11): "C", ("LÍNGUA INGLESA", 1): "E", ("LÍNGUA ESPANHOLA", 1): "C"}
+    assert _resposta(mapa, "LÍNGUA INGLESA", 1) == "E"
+    assert _resposta(mapa, "", 1) is None                 # item comum não herda resposta de uma língua
+    assert _resposta({("", 1): "C"}, "LÍNGUA INGLESA", 1) == "C"   # gabarito sem variantes
