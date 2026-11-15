@@ -249,8 +249,9 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
         rot = [norm_lingua(linhas[i].texto) for i in titulos_lingua]
         for j, ini in enumerate(titulos_lingua[:-1]):
             blocos_lingua.append((ini, titulos_lingua[j + 1], rot[j]))
-        nums_1 = [n for i in range(*blocos_lingua[0][:2]) for n in [numero_inicio(i)] if n is not None]
-        kmax = max(nums_1) if nums_1 else None
+        nums_1 = [(i, n, "") for i in range(*blocos_lingua[0][:2]) for n in [numero_inicio(i)] if n is not None]
+        seq_1 = _cadeia(nums_1, None, salto_max=1)      # itens do 1º bloco (ignora números soltos do texto)
+        kmax = max(n for _, n, _ in seq_1) if seq_1 else None
         fim = len(linhas)
         if kmax is not None:
             for i in range(titulos_lingua[-1] + 1, len(linhas)):
@@ -259,7 +260,9 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
                     fim = i
                     break
         blocos_lingua.append((titulos_lingua[-1], fim, rot[-1]))
-        conjuntos = [{n for i in range(a, b) for n in [numero_inicio(i)] if n is not None} for a, b, _ in blocos_lingua]
+        conjuntos = [{n for _, n, _ in _cadeia([(i, n, "") for i in range(a, b) for n in [numero_inicio(i)]
+                                                 if n is not None], None, salto_max=1)}
+                     for a, b, _ in blocos_lingua]
         if not conjuntos[0] or not all(c & conjuntos[0] for c in conjuntos[1:]):
             blocos_lingua = []          # numeração não se repete: seções obrigatórias, não opções de língua
         else:

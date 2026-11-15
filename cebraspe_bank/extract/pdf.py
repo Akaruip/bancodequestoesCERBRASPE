@@ -100,20 +100,35 @@ def _agrupa_linhas(words, tol=3.0):
 
 
 def _divisor(words, W: float) -> float:
-    """x da margem esquerda da coluna direita: x0 frequente na faixa central que quase nenhuma palavra atravessa."""
+    """x da margem esquerda da coluna direita.
+
+    Candidatos: x0 que se repetem na faixa central (margem frequente; >=3 palavras, senão >=2). Escolhe-se o
+    menor x entre os que têm quase o mínimo de palavras atravessando a calha (títulos de largura total
+    atravessam qualquer x, por isso a tolerância)."""
     xs = collections.Counter(round(w[0]) for w in words if 0.40 * W <= w[0] <= 0.62 * W)
-    melhor = None
+    cands = [x for x, n in xs.items() if n >= 3] or [x for x, n in xs.items() if n >= 2]
+    if not cands:
+        return W / 2
+    cruz = {x: sum(1 for w in words if w[0] < x - 3 and w[2] > x - 1) for x in cands}
+    m = min(cruz.values())
+    if m > max(2, 0.03 * len(words)):
+        return W / 2
     tol = max(2, int(0.01 * len(words)))
-    for x, n in xs.items():
-        if n < 2:
-            continue
-        cruz = sum(1 for w in words if w[0] < x - 3 and w[2] > x - 1)
-        chave = (cruz > tol, x)    # poucos cruzamentos (títulos de largura total) -> a menor x (margem, não o recuo)
-        if melhor is None or chave < melhor[0]:
-            melhor = (chave, x)
-    if melhor and not melhor[0][0]:
-        return float(melhor[1])
-    return W / 2
+    return float(min(x for x in cands if cruz[x] <= m + tol))
+
+
+def _cruzamentos(words, x: float) -> int:
+    return sum(1 for w in words if w[0] < x - 3 and w[2] > x - 1)
+
+
+def _divisor_documento(paginas_words: list, W: float) -> float | None:
+    """Margem da coluna direita mais comum entre as páginas (as colunas são as mesmas no caderno inteiro)."""
+    divs = [round(_divisor(ws, W)) for ws in paginas_words if ws]
+    divs = [d for d in divs if abs(d - W / 2) > 1]
+    if not divs:
+        return None
+    x, n = collections.Counter(divs).most_common(1)[0]
+    return float(x) if n >= 2 else None
 
 
 def _quebra_por_gutter(lw, meio: float, gap_min=6.0):
@@ -195,6 +210,7 @@ def ler(caminho: Path | str, forcar_ocr: bool = False, cabecalho_y: float = HEAD
     pdf = pymupdf.open(caminho)
     doc = Documento(caminho, n_paginas=pdf.page_count)
     tem_texto = [len(pg.get_text().strip()) >= MIN_CHARS_PAGINA for pg in pdf]
+    div_doc = _divisor_documento([pg.get_text("words") for pg in pdf], pdf[0].rect.width) if pdf.page_count else None
     for pno, page in enumerate(pdf):
         W = page.rect.width
         doc.largura = W
@@ -236,7 +252,12 @@ def ler(caminho: Path | str, forcar_ocr: bool = False, cabecalho_y: float = HEAD
             if statistics.median(w[3] - w[1] for w in lw) < 5.0 and re.fullmatch(r"<[^>]+>|\S+", t):
                 continue          # marcas de controle em fonte minúscula (ex.: <AGEPAR233001A01E2048>)
             corpo.append(lw)
-        meio = _divisor([w for lw in corpo for w in lw], W)
+        ws_corpo = [w for lw in corpo for w in lw]
+        meio = _divisor(ws_corpo, W)
+        if div_doc is not None and meio != div_doc and any(abs(w[0] - div_doc) <= 2 for w in ws_corpo):
+            tol = max(2, int(0.01 * len(ws_corpo)))
+            if _cruzamentos(ws_corpo, div_doc) <= _cruzamentos(ws_corpo, meio) + tol:
+                meio = div_doc
         duas = _detecta_duas_colunas(corpo, meio)
         segs: list[Linha] = []
         for lw in corpo:
