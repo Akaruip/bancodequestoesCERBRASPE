@@ -274,8 +274,10 @@ def _resto_desc(t: str | None) -> str:
 
 def vincular(con, concurso_id: int) -> None:
     # pendências geradas pelo vínculo são recalculadas a cada execução
-    con.execute("UPDATE pendencia SET resolvido_em=? WHERE resolvido_em IS NULL AND concurso_id=? AND etapa='gabarito' "
-                "AND (motivo LIKE 'justificativas da seção%' OR motivo LIKE 'padrão de resposta%')", (db.agora(), concurso_id))
+    con.execute("UPDATE pendencia SET resolvido_em=? WHERE resolvido_em IS NULL AND concurso_id=? AND "
+                "((etapa='gabarito' AND (motivo LIKE 'justificativas da seção%' OR motivo LIKE 'padrão de resposta%' "
+                "OR motivo LIKE 'gabarito ambíguo%')) OR (etapa='validacao' AND motivo LIKE 'descrição de cargo diverge%'))",
+                (db.agora(), concurso_id))
     provas = con.execute(
         "SELECT p.*, d.descricao, d.tipo AS doc_tipo, d.caderno AS doc_caderno FROM prova p "
         "JOIN documento d ON d.id=p.documento_id WHERE p.concurso_id=?", (concurso_id,)).fetchall()
@@ -288,44 +290,32 @@ def vincular(con, concurso_id: int) -> None:
         respostas.setdefault((r[0], r[1]), {})[(r[2], r[3])] = r[4]
     datas_ed, datas_ap = [], []
     for p in provas:
-        qs = con.execute("SELECT id, numero, tipo, variante FROM questao WHERE prova_id=?", (p["id"],)).fetchall()
-        nums = {(q["variante"], q["numero"]) for q in qs if q["tipo"] != "DISC"}
-        escolhido: dict[str, tuple] = {}
-        for g in grupos:
-            r = respostas.get((g["documento_id"], g["grupo"]), {})
-            if not r:
-                continue
-            cod_ok = p["codigo_prova"] and g["codigo_prova"] and \
-                p["codigo_prova"].replace("_", "").upper() == g["codigo_prova"].replace("_", "").upper()
-            desc_ok = _resto_desc(p["descricao"]) and _resto_desc(p["descricao"]) == _resto_desc(g["descricao"])
-            mesmo_doc = g["documento_id"] == p["documento_id"]
-            cad_ok = not (p["caderno"] and g["caderno"]) or p["caderno"].upper() == g["caderno"].upper()
-            inter = len(nums & set(r))
-            cobertura = inter / max(1, len(nums | set(r)))
-            if not cad_ok or not nums:
-                continue
-            if mesmo_doc or cod_ok or (desc_ok and cobertura >= 0.8):
-                pontos = (3 if mesmo_doc else 2 if cod_ok else 1, cobertura, 0 if g["versao"] == "sem_efeito" else 1)
-                f = g["fase"]
-                if f not in escolhido or pontos > escolhido[f][0]:
-                    escolhido[f] = (pontos, g, r)
-        pre = escolhido.get("preliminar")
-        de = escolhido.get("definitivo")
-        if de and de[1]["data_aplicacao"]:
-            con.execute("UPDATE prova SET data_aplicacao=? WHERE id=?", (de[1]["data_aplicacao"], p["id"]))
-        for x in (pre, de):
-            if x:
-                if x[1]["data_edital"]:
-                    datas_ed.append(x[1]["data_edital"])
-                if x[1]["data_aplicacao"]:
-                    datas_ap.append(x[1]["data_aplicacao"])
+        qs = con.execute("SELECT id, numero, tipo, variante, secao FROM questao WHERE prova_id=?", (p["id"],)).fetchall()
+        tipo_de = {(q["variante"], q["numero"]): q["tipo"] for q in qs if q["tipo"] != "DISC"}
+        secao_de = {(q["variante"], q["numero"]): norm(q["secao"] or "") for q in qs if q["tipo"] != "DISC"}
+        nums = set(tipo_de)
+        escolhido: dict[str, list] = {}
+        if nums:
+            for fase in ("preliminar", "definitivo"):
+                escolhido[fase] = _compoe(con, p, [g for g in grupos if g["fase"] == fase], respostas, nums,
+                                          tipo_de, secao_de)
+        pre = escolhido.get("preliminar") or []
+        de = escolhido.get("definitivo") or []
+        ap = [g["data_aplicacao"] for g, _ in de if g["data_aplicacao"]]
+        if ap:
+            con.execute("UPDATE prova SET data_aplicacao=? WHERE id=?", (min(ap), p["id"]))
+        for g, _ in pre + de:
+            if g["data_edital"]:
+                datas_ed.append(g["data_edital"])
+            if g["data_aplicacao"]:
+                datas_ap.append(g["data_aplicacao"])
         n_gab = 0
         for q in qs:
             if q["tipo"] == "DISC":
                 con.execute("INSERT OR IGNORE INTO gabarito(questao_id) VALUES (?)", (q["id"],))
                 continue
-            rp = _resposta(pre[2], q["variante"], q["numero"]) if pre else None
-            rd = _resposta(de[2], q["variante"], q["numero"]) if de else None
+            fp, rp = _resposta_composta(pre, q["variante"], q["numero"])
+            fd, rd = _resposta_composta(de, q["variante"], q["numero"])
             if rp is None and rd is None:
                 continue
             n_gab += 1
@@ -337,9 +327,11 @@ def vincular(con, concurso_id: int) -> None:
                 "ON CONFLICT(questao_id) DO UPDATE SET resposta_preliminar=excluded.resposta_preliminar, "
                 "resposta_definitiva=excluded.resposta_definitiva, anulada=excluded.anulada, alterada=excluded.alterada, "
                 "fonte_preliminar=excluded.fonte_preliminar, fonte_definitiva=excluded.fonte_definitiva",
-                (q["id"], rp, rd, anulada, alterada, pre[1]["documento_id"] if pre else None,
-                 de[1]["documento_id"] if de else None))
-        n_gab_total = len(set((de or pre)[2])) if (de or pre) else 0
+                (q["id"], rp, rd, anulada, alterada, fp, fd))
+        cobertos = set()
+        for g, r in (de or pre):
+            cobertos |= {k for k in r if k in nums or (k[0] == "" and any(v == k[1] for _, v in nums))}
+        n_gab_total = len(cobertos)
         con.execute("UPDATE prova SET n_gabarito=? WHERE id=?", (n_gab_total or None, p["id"]))
     _aplica_justificativas(con, concurso_id)
     _aplica_padroes(con, concurso_id)
@@ -350,6 +342,145 @@ def vincular(con, concurso_id: int) -> None:
                      int(min(datas_ap)[:4]) if datas_ap else None, concurso_id))
     recalcular_ano(con, concurso_id)
     con.execute("UPDATE prova SET ano=(SELECT ano FROM concurso WHERE id=?) WHERE concurso_id=?", (concurso_id, concurso_id))
+
+
+_GENERICAS_GAB = {"GABARITO", "GABARITOS", "DEFINITIVO", "DEFINITIVOS", "PRELIMINAR", "PRELIMINARES", "OFICIAL",
+                  "OFICIAIS", "PROVA", "PROVAS", "OBJETIVA", "OBJETIVAS", "CADERNO", "DE", "DA", "DO", "DOS", "DAS", "E",
+                  "A", "O", "OS", "AS", "PARA", "TODOS", "TODAS", "CARGO", "CARGOS", "CONHECIMENTOS", "BASICOS", "GERAIS",
+                  "ESPECIFICOS", "ESPECIALIZADOS", "COMPLEMENTARES", "NIVEL", "SUPERIOR", "MEDIO", "FUNDAMENTAL", "AREA",
+                  "AREAS", "EXCETO", "P1", "P2", "P3", "AO", "EM", "COM", "JUSTIFICATIVAS", "MATRIZ", "ATUALIZADO", "TIPO",
+                  "OPCAO", "OPCOES", "EMPREGO", "EMPREGOS", "FUNCAO", "FUNCOES", "PERFIL", "PERFIS", "CONHECIMENTO",
+                  "BLOCO", "I", "II", "III", "IV", "PAG", "SEM", "EFEITO", "VERSAO", "COMUNS"}
+
+
+def _num_cargos(t: str | None) -> set[int]:
+    t = norm(t)
+    if "EXCETO" in t:
+        return set()
+    m = re.search(r"(?:CARGOS?|EMPREGOS?|OPCOES|PERFIS?)\s+(?:DE\s+)?(\d+)\s+(?:AO?|A)\s+(\d+)", t)
+    if m and int(m.group(1)) <= int(m.group(2)) <= int(m.group(1)) + 300:
+        return set(range(int(m.group(1)), int(m.group(2)) + 1))
+    out = set()
+    for m in re.finditer(r"(?:CARGOS?|EMPREGOS?|PERFIS?)\s+((?:\d+\s*(?:,|E)\s*)*\d+)", t):
+        out |= {int(x) for x in re.findall(r"\d+", m.group(1))}
+    return out
+
+
+def _niveis(t: str | None) -> set[str]:
+    return set(re.findall(r"NIVEL (SUPERIOR|MEDIO|FUNDAMENTAL)", norm(t)))
+
+
+def _especificas(t: str | None) -> set[str]:
+    return {x for x in re.findall(r"[A-Z]{3,}", norm(t)) if x not in _GENERICAS_GAB}
+
+
+def _cod_base(c: str | None) -> tuple[str, str] | None:
+    if not c:
+        return None
+    c = c.upper()
+    m = re.match(r"^(.*?)(?:_(\d{2}))?$", c)
+    return m.group(1).replace("_", ""), (m.group(2) or "")
+
+
+def _mesmo_codigo(a: str | None, b: str | None) -> bool:
+    x, y = _cod_base(a), _cod_base(b)
+    if not x or not y:
+        return False
+    if a.replace("_", "").upper() == b.replace("_", "").upper():
+        return True
+    # mesma base; sufixo de caderno igual, ou "00" (matriz), ou ausente em um dos lados
+    return x[0] == y[0] and (x[1] == y[1] or "00" in (x[1], y[1]) or "" in (x[1], y[1]))
+
+
+def _compoe(con, p, grupos, respostas, nums, tipo_de, secao_de) -> list:
+    """Escolhe um ou mais gabaritos (grupos) com vínculo verdadeiro para a prova, sem sobreposição de itens."""
+    desc_p = f"{p['descricao'] or ''} {p['cargo'] or ''}"
+    cargos_p = _num_cargos(desc_p)
+    niveis_p = _niveis(desc_p)
+    toks_p = _especificas(desc_p)
+    so_especificos = bool(re.search(r"ESPECIFIC|ESPECIALIZAD|COMPLEMENTAR", norm(p["descricao"]))) and \
+        not re.search(r"BASIC|GERA", norm(p["descricao"]))
+    # rótulos de texto do caderno ("Texto CG1A1-I", "texto CB2A3") indicam o bloco de conhecimentos gerais/básicos
+    rotulos = " ".join(r[0] or "" for r in con.execute(
+        "SELECT conteudo FROM texto_base WHERE prova_id=? UNION ALL SELECT enunciado FROM questao WHERE prova_id=?",
+        (p["id"], p["id"])))
+    blocos_p = set(re.findall(r"\b(C[BG]\d{1,2})A\d", rotulos.upper()))
+    cands = []
+    for g in grupos:
+        r = respostas.get((g["documento_id"], g["grupo"]), {})
+        if not r:
+            continue
+        chaves = {k for k in r if k in nums or (k[0] == "" and any(n == k[1] and v for v, n in nums) and
+                                                not any(v for v, _ in r))}
+        if not chaves or len(chaves) < 0.9 * len(r):
+            continue                                   # itens do gabarito não existem nesta prova
+        # tipo de resposta compatível com o tipo das questões
+        ce = [k for k in chaves if tipo_de.get(k, tipo_de.get(("",) + k[1:], "CE")) == "CE"]
+        if any(r[k] not in ("C", "E", "X") for k in ce):
+            continue
+        me = [k for k in chaves if k not in ce]
+        if len(me) >= 5 and all(r[k] in ("C", "E", "X") for k in me):
+            continue
+        desc_g = f"{g['descricao'] or ''} {g['cargo'] or ''}"
+        if g["documento_id"] == p["documento_id"]:
+            prio = 4
+        elif _mesmo_codigo(p["codigo_prova"], g["codigo_prova"]):
+            prio = 3
+            cg = _num_cargos(g["descricao"])
+            if cargos_p and cg and not (cargos_p & cg):
+                db.pendencia(con, "validacao", f"descrição de cargo diverge entre prova e gabarito "
+                             f"(mesmo código de arquivo {g['codigo_prova']}); vinculado pelo código",
+                             p["concurso_id"], p["documento_id"])
+        else:
+            cg = _num_cargos(desc_g)
+            esp = _especificas(desc_g)
+            nv = _niveis(desc_g)
+            if nv and niveis_p and not (nv & niveis_p):
+                continue
+            if cg:
+                if not cargos_p or not cargos_p <= cg:
+                    continue
+                prio = 2
+            elif esp:
+                if not esp <= toks_p:
+                    continue
+                prio = 2
+            else:
+                # gabarito genérico (ex.: conhecimentos básicos para todos os cargos)
+                if so_especificos or any("ESPECIFIC" in secao_de.get(k, "") for k in chaves):
+                    continue
+                prio = 1
+                bloco_g = re.search(r"(C[BG]\d{1,2})(?:_\d{2})?$", (g["codigo_prova"] or "").upper())
+                if blocos_p and bloco_g:
+                    if bloco_g.group(1) not in blocos_p:
+                        continue                       # o caderno usa textos de outro bloco (ex.: CG2 x CG1)
+                    prio = 1.5
+        sem_efeito = g["versao"] == "sem_efeito"
+        cands.append((prio, not sem_efeito, len(chaves), g, r, chaves))
+    cands.sort(key=lambda c: (c[0], c[1], c[2]), reverse=True)
+    escolhidos, cobertos, vetados = [], set(), set()
+    for i, (prio, _, _, g, r, chaves) in enumerate(cands):
+        if i in vetados or chaves & cobertos:
+            continue
+        rivais = [j for j, d in enumerate(cands) if j != i and j not in vetados and d[0] == prio
+                  and d[5] & chaves and any(d[4].get(k) != r.get(k) for k in d[5] & chaves)]
+        if rivais:
+            nomes = sorted({cands[j][3]["descricao"] or "" for j in rivais} | {g["descricao"] or ""})
+            db.pendencia(con, "gabarito", "gabarito ambíguo para a prova (respostas diferentes): " +
+                         " | ".join(n[:80] for n in nomes), p["concurso_id"], p["documento_id"])
+            vetados.update(rivais + [i])
+            continue
+        escolhidos.append((g, r))
+        cobertos |= chaves
+    return escolhidos
+
+
+def _resposta_composta(grupos: list, variante: str, numero: int) -> tuple[int | None, str | None]:
+    for g, r in grupos:
+        v = _resposta(r, variante, numero)
+        if v is not None:
+            return g["documento_id"], v
+    return None, None
 
 
 def _resposta(mapa: dict, variante: str, numero: int) -> str | None:
