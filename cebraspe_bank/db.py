@@ -241,9 +241,22 @@ def _migra(con) -> None:
     for t, c in derivadas.items():
         if t in existentes and c not in cols(t):
             con.execute(f"DROP TABLE IF EXISTS {t}")
-            if t == "questao" and "questao_fts" in existentes:
-                con.execute("DROP TABLE IF EXISTS questao_fts")      # índice textual referencia ids de questao
+            if t == "questao":
+                # tabelas que referenciam questao.id ficariam órfãs (o DROP não aplica cascata aqui)
+                con.execute("DROP TABLE IF EXISTS questao_fts")
+                con.execute("DROP TABLE IF EXISTS gabarito")
     con.commit()
+
+
+def limpar_orfaos(con) -> dict:
+    """Remove linhas derivadas que apontam para questões/provas inexistentes."""
+    n = {}
+    n["gabarito"] = con.execute("DELETE FROM gabarito WHERE questao_id NOT IN (SELECT id FROM questao)").rowcount
+    n["questao_fts"] = con.execute("DELETE FROM questao_fts WHERE questao_id NOT IN (SELECT id FROM questao)").rowcount
+    n["texto_base"] = con.execute("DELETE FROM texto_base WHERE prova_id NOT IN (SELECT id FROM prova)").rowcount
+    n["prova_cargo"] = con.execute("DELETE FROM prova_cargo WHERE prova_id NOT IN (SELECT id FROM prova)").rowcount
+    con.commit()
+    return n
 
 
 def pendencia(con, etapa: str, motivo: str, concurso_id=None, documento_id=None) -> None:

@@ -650,7 +650,7 @@ def extract(con, slugs=None, ano=None, desde=None, refazer: bool = False, revinc
         q += " AND ano>=?"
         args.append(desde)
     st = {"concursos": 0, "gabaritos": 0, "provas": 0, "justificativas": 0, "erros": 0, "pulados": 0,
-          "reclassificados": reclassificar(con)}
+          "reclassificados": reclassificar(con), "orfaos_removidos": db.limpar_orfaos(con)}
     for c in con.execute(q + " ORDER BY ano DESC, slug", args).fetchall():
         docs = con.execute(
             "SELECT * FROM documento WHERE concurso_id=? AND arquivo_local IS NOT NULL AND sha256 IS NOT NULL "
