@@ -82,6 +82,12 @@ def _palavras_pagina(page, ocr: bool):
 
 def _agrupa_linhas(words, tol=3.0):
     """words -> linhas físicas: mesma linha se o centro está a <= tol ou há sobreposição vertical >= 60%."""
+    if words:
+        # glifos de fórmula (Cambria Math etc.) têm caixa de várias linhas de altura e fundiriam linhas vizinhas:
+        # para o agrupamento, valem com a altura mediana, centrados na caixa original
+        h = statistics.median(w[3] - w[1] for w in words)
+        words = [w if w[3] - w[1] <= 2.5 * h else
+                 (w[0], (w[1] + w[3]) / 2 - h / 2, w[2], (w[1] + w[3]) / 2 + h / 2, *w[4:]) for w in words]
     ws = sorted(words, key=lambda w: ((w[1] + w[3]) / 2, w[0]))
     linhas: list[list] = []          # [y0, y1, [words]]
     for w in ws:
@@ -255,8 +261,11 @@ def ler(caminho: Path | str, forcar_ocr: bool = False, cabecalho_y: float = HEAD
             corpo.append(lw)
         ws_corpo = [w for lw in corpo for w in lw]
         meio = _divisor(ws_corpo, W)
-        if div_doc is not None and meio != div_doc and any(abs(w[0] - div_doc) <= 2 for w in ws_corpo):
-            tol = max(2, int(0.01 * len(ws_corpo)))
+        if div_doc is not None and meio != div_doc:
+            # sem palavra alinhada na margem do documento (coluna direita que começa com gráfico/fórmula), a margem
+            # do documento só vale se não cruzar mais palavras que a da página
+            alinhado = any(abs(w[0] - div_doc) <= 2 for w in ws_corpo)
+            tol = max(2, int(0.01 * len(ws_corpo))) if alinhado else 0
             if _cruzamentos(ws_corpo, div_doc) <= _cruzamentos(ws_corpo, meio) + tol:
                 meio = div_doc
         duas = colunas and _detecta_duas_colunas(corpo, meio)

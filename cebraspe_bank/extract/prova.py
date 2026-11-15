@@ -291,7 +291,7 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
     cifra = None
     numerados: list[tuple[int, int, str]] = []
     if cands:
-        diretos = [(i, int(t), t) for i, t, _ in cands if _dig(t)]
+        diretos = [(i, int(t), t) for i, t, _ in cands if _dig(t) and int(t) > 0]   # não há item 0
         if blocos_lingua or lado_a_lado:
             rotulos = [lab for _, _, lab in blocos_lingua] or [lab for _, lab in lado_a_lado]
             principal = [x for x in diretos if rotulo_lingua(x[0], x[1]) in ("", rotulos[0])]
@@ -430,6 +430,10 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
         elif it.blocos_anteriores:
             it.bloco = it.blocos_anteriores[-1]
 
+    if modalidade == "discursiva" and not formato_me and len(itens) == 1 and itens[0].numero != 1:
+        # um único número solto na margem de uma discursiva é numeração de linha (ex.: depoimento do caso de tribuna)
+        avisos.append(f"número {itens[0].numero} isolado na margem tratado como numeração de linha")
+        itens = []
     if modalidade == "discursiva" and not itens:
         corpo = [l for l in linhas]
         if corpo:
@@ -438,6 +442,8 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
             blocos = []
             avisos.append("discursiva sem numeração: texto inteiro como questão 1")
 
+    if formato_me:
+        _corrige_numero_isolado(itens, avisos)
     # "Questão N" sem nenhuma alternativa em toda a prova => questões discursivas
     if formato_me and itens and all(not it.alternativas for it in itens if it.tipo == "ME"):
         for it in itens:
@@ -449,6 +455,19 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
         if descartados:
             avisos.append(f"{descartados} linha(s) com número na margem fora da sequência de itens")
     return ResultadoProva(itens, blocos, tipo, cifra, avisos)
+
+
+def _corrige_numero_isolado(itens: list[Item], avisos: list[str]) -> None:
+    """'Questão 344' entre a 33 e a 35 (erro de digitação no próprio PDF): vira 34 se a 34 não existe."""
+    existentes = {(it.variante, it.numero) for it in itens}
+    for a, b, c in zip(itens, itens[1:], itens[2:]):
+        if a.variante == b.variante == c.variante and c.numero == a.numero + 2 and b.numero != a.numero + 1 \
+                and (a.variante, a.numero + 1) not in existentes:
+            avisos.append(f"'Questão {b.numero}' fora da sequência entre {a.numero} e {c.numero}: renumerada para "
+                          f"{a.numero + 1}")
+            existentes.discard((b.variante, b.numero))
+            b.numero = a.numero + 1
+            existentes.add((b.variante, b.numero))
 
 
 def _proxima_alt(linhas: list[Linha], i: int, na_margem) -> str | None:

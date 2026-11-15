@@ -116,6 +116,9 @@ def reclassificar(con) -> int:
             con.execute("UPDATE documento SET tipo=?, modalidade=?, acessibilidade=?, versao=?, cargo=?, caderno=?, "
                         "codigo_prova=?, bloco=?, revisar=?, motivo_revisao=? WHERE id=?",
                         (*novo, "; ".join(c.motivos) or None, d["id"]))
+            if novo[:2] != atual[:2]:
+                # outro tipo/modalidade => outra extração: invalida o checkpoint para o extract reprocessar
+                con.execute("DELETE FROM checkpoint WHERE etapa='extract' AND chave=?", (str(d["id"]),))
             n += 1
     con.commit()
     return n

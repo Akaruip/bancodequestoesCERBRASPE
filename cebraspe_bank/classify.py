@@ -31,7 +31,12 @@ _PROVA_DESC = re.compile(
 _PROVA_FORTE = re.compile(
     r"^(CADERNO DE PROVAS?|PROVAS? (OBJETIVAS?|DISCURSIVAS?|ESCRITAS?|SUBJETIVAS?|TE.{0,2}RICAS?)|CONHECIMENTOS (BASICOS|GERAIS|ESPECIFICOS|COMPLEMENTARES))\b"
 )
-_NAO_PROVA = re.compile(r"PROVA ORAL|\bORAL\b|DIGITACAO|APTIDAO FISICA|TAF\b|PRATICA DE (DIRECAO|CONDUCAO)")
+_NAO_PROVA = re.compile(r"PROVA ORAL|\bORAL\b|DIGITACAO|APTIDAO FISICA|TAF\b|PRATICA DE (DIRECAO|CONDUCAO)"
+                        r"|^CAPA\b|\bPROVAS? - CAPA\b|- CAPA$")
+# provas escritas de resposta livre que não dizem "discursiva": prática (peça, parecer, sentença), situação-problema,
+# caso da prova de tribuna (publicado com padrão de resposta)
+_DISC_EXTRA = re.compile(r"PROVA PRATICA|PRATICA DE SENTENCA|HABILIDADES CLINICAS|SITUACAO PROBLEMA|\bSENTENCA\b"
+                         r"|\bPECA (JUDICIAL|PROCESSUAL|PRATICA)\b|\bTRIBUNA\b|CASO HIPOTETICO")
 _PROVA_NOME = re.compile(r"^(MATRIZ )?\d{3} ?[A-Z0-9]+( [A-Z0-9]+)* (CB\d+|CG\d+|CE\d+|DISC|\d{3})( \d+)*( CADERNO [A-Z]+)?$")
 
 _PREFIXOS = re.compile(r"^(GAB(ARITO)?_?(DEFINITIVO|PRELIMINAR)_|MATRIZ_|XX)+", re.I)
@@ -119,6 +124,8 @@ def classificar(nome_arquivo: str, descricao: str | None, extensao: str | None =
     elif _NAO_PROVA.search(d) and not justif:
         c.tipo = "outro"
         c.motivos.append("prova oral/prática/física: fora do escopo")
+    elif re.match(r"^JUSTIFICATIVAS?\b", d) and re.search(r"ALTERA|ANULA|GABARITO", d):
+        c.tipo = "justificativa"
     elif justif and tem_prova and tem_gab:
         c.tipo = "prova_com_gabarito_definitivo" if defin and not prelim else "prova_com_gabarito_preliminar"
     elif justif and (tem_gab or re.search(r"ALTERA|ANULA", nd)):
@@ -158,7 +165,8 @@ def classificar(nome_arquivo: str, descricao: str | None, extensao: str | None =
         c.tipo = "outro"
 
     if c.tipo in TIPOS_CONTEUDO and c.modalidade is None:
-        if re.search(r"DISCURSIVA|REDACAO|\bDISC\b|SUBJETIVA|PROVA ESCRITA|PECA PROCESSUAL|PARECER|ESTUDO DE CASO", nd):
+        if re.search(r"DISCURSIVA|REDACAO|\bDISC\b|SUBJETIVA|PROVA ESCRITA|PECA PROCESSUAL|PARECER|ESTUDO DE CASO", nd) \
+                or (_DISC_EXTRA.search(nd) and c.tipo.startswith(("prova", "padrao"))):
             c.modalidade = "discursiva"
         elif re.search(r"OBJETIVA|CONHECIMENTOS|\bCB\d|\bCG\d", nd) or c.tipo.startswith("gabarito"):
             c.modalidade = "objetiva"

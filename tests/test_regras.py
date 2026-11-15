@@ -54,6 +54,15 @@ def test_classificacao():
     assert classificar("x.pdf", "CADERNO DE PROVA - 16: PROFESSOR (SALAS DE RECURSOS)").tipo == "prova"
     assert classificar("Malote1.pdf", "questões - prova oral - malote 1").tipo == "outro"
     assert classificar("x.pdf", "Relação final dos candidatos com a inscrição deferida").tipo == "outro"
+    # provas de resposta livre que não dizem "discursiva"; capa; justificativas que citam "prova objetiva"
+    assert classificar("x.pdf", "PROVA PRÁTICA (P3)").modalidade == "discursiva"
+    assert classificar("x.pdf", "PROVA PRÁTICA DE SENTENÇA (P3) - SENTENÇA CÍVEL").modalidade == "discursiva"
+    assert classificar("688_MPCE_TRIBUNA_001.PDF", "CASO HIPOTÉTICO 1 (TEMA)").modalidade == "discursiva"
+    assert classificar("x.pdf", "Edital nº 24 – Resultado provisório na prova de tribuna").tipo == "edital"
+    assert classificar("292_PMBH_CAPA_NS.pdf", "Caderno de provas - Capa").tipo == "outro"
+    assert classificar("x.pdf", "Justificativas de alteração do gabarito da prova objetiva").tipo == "justificativa"
+    assert classificar("x.pdf", "PROVA OBJETIVA (P1) E GABARITO PRELIMINAR COM JUSTIFICATIVAS").tipo == \
+        "prova_com_gabarito_preliminar"
 
 
 def test_lingua_variantes():
@@ -69,3 +78,52 @@ def test_lingua_variantes():
     assert _resposta(mapa, "LÍNGUA INGLESA", 1) == "E"
     assert _resposta(mapa, "", 1) is None                 # item comum não herda resposta de uma língua
     assert _resposta({("", 1): "C"}, "LÍNGUA INGLESA", 1) == "C"   # gabarito sem variantes
+
+
+def test_alteracoes_diario_oficial():
+    from cebraspe_bank.extract.gabarito import alteracoes
+    t = ("Questões:\nQuestão 12 \nAnulada \nVersão de prova 1.1\nQuestão 13 \nAlterada de D p/ B \n"
+         "Versão de prova 1.1\nQuestão 13 \nAlterada de B p/ E \nVersão de prova 1.2\n")
+    assert alteracoes(t) == {"1.1": {12: (None, "X"), 13: ("D", "B")}, "1.2": {13: ("B", "E")}}
+
+
+def test_vinculo_versao_e_secao():
+    from cebraspe_bank.extract import _mesma_aplicacao, _secao_compativel, _sufixo_codigo, _versao_caderno
+    assert _versao_caderno("1.3") == 3 and _versao_caderno("4") == 4 and _versao_caderno("LUA") is None
+    assert _sufixo_codigo("254PMSP_CG1_03") == 3 and _sufixo_codigo("579_ANM") is None
+    assert _mesma_aplicacao("579_ANM", "579_ANM_001_00") and not _mesma_aplicacao("614_SEFAZ_RR", "015_SEFAZRR21CF_001_01")
+    assert _mesma_aplicacao(None, "579_ANM_001_00")
+    esp = "GABARITO DEFINITIVO - CONHECIMENTOS ESPECIALIZADOS (PROVA OBJETIVA P3) - CARGO 1"
+    assert not _secao_compativel(esp, [norm("CONHECIMENTOS BÁSICOS")])
+    assert _secao_compativel(esp, [norm("CONHECIMENTOS ESPECIALIZADOS"), ""])
+    assert _secao_compativel("GABARITO DEFINITIVO - PROVA OBJETIVA", [norm("CONHECIMENTOS BÁSICOS")])
+
+
+def test_segmentacao():
+    from cebraspe_bank.extract.gabarito import _linha_numeros
+    from cebraspe_bank.extract.pdf import _agrupa_linhas
+    from cebraspe_bank.extract.prova import Item, _corrige_numero_isolado
+    itens = [Item(n, "ME") for n in (33, 344, 35)]
+    av = []
+    _corrige_numero_isolado(itens, av)
+    assert [it.numero for it in itens] == [33, 34, 35] and av
+    # última linha do gabarito completada com zeros: "Questão 59 60 0 0 0 ..."
+    lw = [(0, 0, 30, 10, "Questão"), (40, 0, 50, 10, "59"), (60, 0, 70, 10, "60")] + \
+         [(80 + 20 * i, 0, 90 + 20 * i, 10, "0") for i in range(18)]
+    assert [w[4] for w in _linha_numeros(lw)] == ["59", "60"]
+    lw1 = [lw[0], (40, 0, 50, 10, "100")] + lw[3:]
+    assert [w[4] for w in _linha_numeros(lw1)] == ["100"]
+    # glifo de fórmula com caixa de várias linhas não funde as linhas vizinhas
+    ws = [(0, 0, 10, 10, "a"), (0, 14, 10, 24, "b"), (0, 28, 10, 38, "c"), (20, -10, 30, 48, "𝑈")]
+    assert len(_agrupa_linhas(ws)) == 3
+
+
+def test_ocr_gabarito():
+    from cebraspe_bank.extract.gabarito import _letra, _numera_por_posicao
+    assert _letra("Cc", ocr=True) == "C" and _letra("XxX", ocr=True) == "X" and _letra("[o", ocr=True) is None
+    assert _letra("EE") is None                           # PDF de texto: duas células coladas, não uma resposta
+    # linha "Questão 41 42 ... " lida pelo OCR com '411', '7O' e 'rá'
+    toks = ["Questão", "411", "42", "43", "7O", "rá", "46"]
+    lw = [(0, 0, 30, 10, toks[0])] + [(50 + 25 * i, 0, 60 + 25 * i, 10, t) for i, t in enumerate(toks[1:])]
+    nums = [w for w in lw if w[4].isdigit()]                # como em _linha_numeros: 411, 42, 43, 46
+    assert [v for _, v in _numera_por_posicao(lw, nums, 25.0)] == [41, 42, 43, 44, 45, 46]

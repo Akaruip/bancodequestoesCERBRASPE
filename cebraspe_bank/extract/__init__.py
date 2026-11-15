@@ -72,6 +72,15 @@ def _processa_gabarito(con, doc) -> None:
     con.execute("DELETE FROM gabarito_bruto WHERE documento_id=?", (doc["id"],))
     con.execute("DELETE FROM gabarito_grupo WHERE documento_id=?", (doc["id"],))
     if not grupos:
+        # sem tabela: lista de anulações/alterações por versão ("Questão 13 Alterada de D p/ B Versão de prova 1.1"),
+        # que só vale junto com o gabarito preliminar (as demais questões são mantidas)
+        alt = gab.alteracoes(gab.texto_leitura(caminho))
+        if alt:
+            for k, (versao, itens) in enumerate(sorted(alt.items())):
+                _grava_grupo(con, doc["id"], k, "definitivo", {n: d for n, (_, d) in itens.items()},
+                             doc["codigo_prova"], versao, doc["cargo"], origem="alteracoes")
+            db.resolver_pendencias(con, "gabarito", doc["concurso_id"], doc["id"], "nenhuma tabela")
+            return
         db.pendencia(con, "gabarito", "nenhuma tabela de gabarito reconhecida no PDF", doc["concurso_id"], doc["id"])
         return
     fase_doc = "preliminar" if doc["tipo"] == "gabarito_preliminar" else "definitivo"
@@ -301,6 +310,8 @@ def vincular(con, concurso_id: int) -> None:
                                           tipo_de, secao_de)
         pre = escolhido.get("preliminar") or []
         de = escolhido.get("definitivo") or []
+        # definitivo publicado só como lista de alterações/anulações: os demais itens mantêm o preliminar
+        so_alteracoes = bool(de and pre) and all(g["origem"] == "alteracoes" for g, _ in de)
         ap = [g["data_aplicacao"] for g, _ in de if g["data_aplicacao"]]
         if ap:
             con.execute("UPDATE prova SET data_aplicacao=? WHERE id=?", (min(ap), p["id"]))
@@ -316,6 +327,8 @@ def vincular(con, concurso_id: int) -> None:
                 continue
             fp, rp = _resposta_composta(pre, q["variante"], q["numero"])
             fd, rd = _resposta_composta(de, q["variante"], q["numero"])
+            if rd is None and so_alteracoes and rp is not None:
+                fd, rd = de[0][0]["documento_id"], rp
             if rp is None and rd is None:
                 continue
             n_gab += 1
@@ -329,7 +342,7 @@ def vincular(con, concurso_id: int) -> None:
                 "fonte_preliminar=excluded.fonte_preliminar, fonte_definitiva=excluded.fonte_definitiva",
                 (q["id"], rp, rd, anulada, alterada, fp, fd))
         cobertos = set()
-        for g, r in (de or pre):
+        for g, r in (pre if so_alteracoes else (de or pre)):
             cobertos |= {k for k in r if k in nums or (k[0] == "" and any(v == k[1] for _, v in nums))}
         n_gab_total = len(cobertos)
         con.execute("UPDATE prova SET n_gabarito=? WHERE id=?", (n_gab_total or None, p["id"]))
@@ -392,6 +405,42 @@ def _mesmo_codigo(a: str | None, b: str | None) -> bool:
     return x[0] == y[0] and (x[1] == y[1] or "00" in (x[1], y[1]) or "" in (x[1], y[1]))
 
 
+def _versao_caderno(cad: str | None) -> int | None:
+    """Caderno numérico do gabarito ('1.3' = versão 3 da prova 1; '3') -> 3. Nomes (cores etc.) -> None."""
+    m = re.fullmatch(r"(?:\d{1,2}\.)?(\d{1,2})", (cad or "").strip())
+    return int(m.group(1)) if m else None
+
+
+def _mesma_aplicacao(a: str | None, b: str | None) -> bool:
+    """Códigos de arquivo da mesma aplicação começam pelo mesmo número (579_ANM, 579_ANM_001_00). Sem código: aceita."""
+    ma, mb = re.match(r"\d{3}", a or ""), re.match(r"\d{3}", b or "")
+    return not (ma and mb) or ma.group(0) == mb.group(0)
+
+
+_CURSO = re.compile(r"CURSO DE (FORMACAO|PREPARACAO)|VERIFICACAO DE APRENDIZAGEM|\bPROCAP\b|CAPACITACAO")
+_SEC_ESP = re.compile(r"ESPECIFIC|ESPECIALIZAD")
+_SEC_BAS = re.compile(r"BASIC|GERA")
+
+
+def _secao_compativel(desc_g: str, secoes: list[str]) -> bool:
+    """Gabarito só de específicos/especializados não vale para itens em seção de básicos/gerais, e vice-versa.
+    Seções vazias ou neutras não contam."""
+    d = norm(desc_g)
+    g_esp, g_bas = bool(_SEC_ESP.search(d)), bool(_SEC_BAS.search(d))
+    if g_esp == g_bas:
+        return True
+    for s in secoes:
+        s_esp, s_bas = bool(_SEC_ESP.search(s)), bool(_SEC_BAS.search(s))
+        if s_esp != s_bas and s_esp != g_esp:
+            return False
+    return True
+
+
+def _sufixo_codigo(c: str | None) -> int | None:
+    m = re.search(r"_(\d{2})$", c or "")
+    return int(m.group(1)) if m else None
+
+
 def _compoe(con, p, grupos, respostas, nums, tipo_de, secao_de) -> list:
     """Escolhe um ou mais gabaritos (grupos) com vínculo verdadeiro para a prova, sem sobreposição de itens."""
     desc_p = f"{p['descricao'] or ''} {p['cargo'] or ''}"
@@ -400,6 +449,8 @@ def _compoe(con, p, grupos, respostas, nums, tipo_de, secao_de) -> list:
     toks_p = _especificas(desc_p)
     so_especificos = bool(re.search(r"ESPECIFIC|ESPECIALIZAD|COMPLEMENTAR", norm(p["descricao"]))) and \
         not re.search(r"BASIC|GERA", norm(p["descricao"]))
+    # o caderno pode ter seção de conhecimentos gerais/básicos mesmo com descrição "específicos"
+    tem_basicos = any(re.search(r"BASIC|GERA", s) for s in secao_de.values())
     # rótulos de texto do caderno ("Texto CG1A1-I", "texto CB2A3") indicam o bloco de conhecimentos gerais/básicos
     rotulos = " ".join(r[0] or "" for r in con.execute(
         "SELECT conteudo FROM texto_base WHERE prova_id=? UNION ALL SELECT enunciado FROM questao WHERE prova_id=?",
@@ -412,7 +463,17 @@ def _compoe(con, p, grupos, respostas, nums, tipo_de, secao_de) -> list:
             continue
         chaves = {k for k in r if k in nums or (k[0] == "" and any(n == k[1] and v for v, n in nums) and
                                                 not any(v for v, _ in r))}
-        if not chaves or len(chaves) < 0.9 * len(r):
+        # versão numérica do caderno (gabarito '1.3') x sufixo do arquivo da prova (_03)
+        vg, vp = _versao_caderno(g["caderno"]), _sufixo_codigo(p["codigo_prova"])
+        if vg is not None and vp is not None and vg != vp:
+            continue
+        mesma_versao = vg is not None and vg == vp
+        # um gabarito por versão pode cobrir dois cadernos (básicos 1-60 + específicos 61-80): basta cobrir a prova toda
+        cobre_prova = mesma_versao and chaves == nums
+        # lista de alterações da mesma versão vale para a prova toda, mesmo sem nenhum item alterado nela
+        if mesma_versao and g["origem"] == "alteracoes":
+            cobre_prova = True
+        if (not chaves and not cobre_prova) or (len(chaves) < 0.9 * len(r) and not cobre_prova):
             continue                                   # itens do gabarito não existem nesta prova
         # tipo de resposta compatível com o tipo das questões
         ce = [k for k in chaves if tipo_de.get(k, tipo_de.get(("",) + k[1:], "CE")) == "CE"]
@@ -424,6 +485,8 @@ def _compoe(con, p, grupos, respostas, nums, tipo_de, secao_de) -> list:
         desc_g = f"{g['descricao'] or ''} {g['cargo'] or ''}"
         if g["documento_id"] == p["documento_id"]:
             prio = 4
+        elif mesma_versao and not g["codigo_prova"]:
+            prio = 3
         elif _mesmo_codigo(p["codigo_prova"], g["codigo_prova"]):
             prio = 3
             cg = _num_cargos(g["descricao"])
@@ -437,6 +500,10 @@ def _compoe(con, p, grupos, respostas, nums, tipo_de, secao_de) -> list:
             nv = _niveis(desc_g)
             if nv and niveis_p and not (nv & niveis_p):
                 continue
+            if not _secao_compativel(desc_g, [secao_de.get(k, "") for k in chaves]):
+                continue                               # ex.: gabarito de especializados (P3) x itens de básicos (P1)
+            if bool(_CURSO.search(norm(desc_g))) != bool(_CURSO.search(norm(desc_p))):
+                continue                               # curso de formação é outra prova, mesmo com o mesmo cargo
             if cg:
                 if not cargos_p or not cargos_p <= cg:
                     continue
@@ -445,9 +512,23 @@ def _compoe(con, p, grupos, respostas, nums, tipo_de, secao_de) -> list:
                 if not esp <= toks_p:
                     continue
                 prio = 2
+            elif re.search(r"ESPECIFIC|ESPECIALIZAD", norm(desc_g)) and not re.search(r"BASIC|GERA", norm(desc_g)):
+                # gabarito só de conhecimentos específicos, sem cargo: vale para itens de seção específica da prova
+                # (prova "matriz" com básicos + específicos), desde que seja da mesma aplicação (prefixo do código)
+                if not all("ESPECIFIC" in secao_de.get(k, "") for k in chaves) or \
+                        not _mesma_aplicacao(p["codigo_prova"], g["codigo_prova"]):
+                    continue
+                prio = 1
             else:
                 # gabarito genérico (ex.: conhecimentos básicos para todos os cargos)
-                if so_especificos or any("ESPECIFIC" in secao_de.get(k, "") for k in chaves):
+                parte_g, parte_p = set(re.findall(r"\bP\d\b", norm(desc_g))), set(re.findall(r"\bP\d\b", norm(desc_p)))
+                if parte_g and parte_p and parte_g != parte_p:
+                    continue                           # gabarito da P1 x prova P2
+                # gabarito neutro da mesma parte ("GABARITO DEFINITIVO – PROVA OBJETIVA (P2)") vale também para
+                # itens de específicos
+                mesma_parte = bool(parte_g) and parte_g == parte_p and not _SEC_BAS.search(norm(desc_g))
+                if not mesma_parte and ((so_especificos and not tem_basicos) or
+                                        any("ESPECIFIC" in secao_de.get(k, "") for k in chaves)):
                     continue
                 prio = 1
                 bloco_g = re.search(r"(C[BG]\d{1,2})(?:_\d{2})?$", (g["codigo_prova"] or "").upper())
@@ -595,7 +676,12 @@ def _aplica_padroes(con, concurso_id: int) -> None:
             db.pendencia(con, "gabarito", f"padrão de resposta sem prova discursiva correspondente ({len(alvo)} candidatas)",
                          concurso_id, pad["id"])
             continue
-        texto = ler(_abs(pad["arquivo_local"]), colunas=False).texto
+        caminho = _abs(pad["arquivo_local"])
+        if not caminho.exists():
+            # revínculo sem os PDFs locais: mantém o padrão já gravado
+            db.resolver_pendencias(con, "gabarito", concurso_id, pad["id"], "padrão")
+            continue
+        texto = ler(caminho, colunas=False).texto
         partes = re.split(r"(?im)^\s*QUEST[ÃA]O\s+(\d+)\s*$", texto)
         qs = con.execute("SELECT id, numero FROM questao WHERE prova_id=? AND tipo='DISC'", (alvo[0]["id"],)).fetchall()
         por_num = {}
@@ -636,6 +722,26 @@ def validar_provas(con, concurso_id: int) -> None:
         con.execute("UPDATE prova SET extracao_status=? WHERE id=?", (status, p["id"]))
 
 
+def _remove_provas_fora(con) -> int:
+    """Provas extraídas de documentos que, reclassificados, deixaram de ser prova (capa, justificativas...)."""
+    ids = con.execute(f"SELECT p.id, p.concurso_id, p.documento_id FROM prova p JOIN documento d ON d.id=p.documento_id "
+                      f"WHERE d.tipo NOT IN ({','.join('?' * len(TIPOS_PROVA))})", TIPOS_PROVA).fetchall()
+    for pid, cid, did in ids:
+        con.execute("DELETE FROM questao_fts WHERE questao_id IN (SELECT id FROM questao WHERE prova_id=?)", (pid,))
+        con.execute("DELETE FROM gabarito WHERE questao_id IN (SELECT id FROM questao WHERE prova_id=?)", (pid,))
+        con.execute("DELETE FROM questao WHERE prova_id=?", (pid,))
+        con.execute("DELETE FROM texto_base WHERE prova_id=?", (pid,))
+        con.execute("DELETE FROM prova_cargo WHERE prova_id=?", (pid,))
+        con.execute("DELETE FROM prova WHERE id=?", (pid,))
+        con.execute("DELETE FROM gabarito_bruto WHERE documento_id=? AND grupo IN "
+                    "(SELECT grupo FROM gabarito_grupo WHERE documento_id=? AND origem='embutido')", (did, did))
+        con.execute("DELETE FROM gabarito_grupo WHERE documento_id=? AND origem='embutido'", (did,))
+        for etapa in ("validacao", "gabarito", "extracao"):
+            db.resolver_pendencias(con, etapa, cid, did)
+    con.commit()
+    return len(ids)
+
+
 # ---------------------------------------------------------------- orquestração
 def extract(con, slugs=None, ano=None, desde=None, refazer: bool = False, revincular: bool = False) -> dict:
     q = "SELECT * FROM concurso WHERE detalhe_ok=1"
@@ -650,7 +756,8 @@ def extract(con, slugs=None, ano=None, desde=None, refazer: bool = False, revinc
         q += " AND ano>=?"
         args.append(desde)
     st = {"concursos": 0, "gabaritos": 0, "provas": 0, "justificativas": 0, "erros": 0, "pulados": 0,
-          "reclassificados": reclassificar(con), "orfaos_removidos": db.limpar_orfaos(con)}
+          "reclassificados": reclassificar(con), "provas_removidas": _remove_provas_fora(con),
+          "orfaos_removidos": db.limpar_orfaos(con)}
     for c in con.execute(q + " ORDER BY ano DESC, slug", args).fetchall():
         docs = con.execute(
             "SELECT * FROM documento WHERE concurso_id=? AND arquivo_local IS NOT NULL AND sha256 IS NOT NULL "
