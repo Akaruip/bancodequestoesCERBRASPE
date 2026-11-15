@@ -205,7 +205,8 @@ def _graficos(page) -> list[pymupdf.Rect]:
 
 
 def ler(caminho: Path | str, forcar_ocr: bool = False, cabecalho_y: float = HEADER_Y,
-        pular_capa_sem_texto: bool = True) -> Documento:
+        pular_capa_sem_texto: bool = True, colunas: bool = True) -> Documento:
+    """colunas=False: lê a página inteira como uma coluna (tabelas de justificativa, padrões de resposta)."""
     caminho = Path(caminho)
     pdf = pymupdf.open(caminho)
     doc = Documento(caminho, n_paginas=pdf.page_count)
@@ -258,7 +259,7 @@ def ler(caminho: Path | str, forcar_ocr: bool = False, cabecalho_y: float = HEAD
             tol = max(2, int(0.01 * len(ws_corpo)))
             if _cruzamentos(ws_corpo, div_doc) <= _cruzamentos(ws_corpo, meio) + tol:
                 meio = div_doc
-        duas = _detecta_duas_colunas(corpo, meio)
+        duas = colunas and _detecta_duas_colunas(corpo, meio)
         segs: list[Linha] = []
         for lw in corpo:
             partes = _quebra_por_gutter(lw, meio) if duas else [(-1, lw)]

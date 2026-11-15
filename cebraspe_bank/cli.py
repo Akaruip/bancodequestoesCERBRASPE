@@ -34,6 +34,8 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("extract", help="Fases 3-4: extrai questões e gabaritos dos PDFs")
     _filtros(p)
     p.add_argument("--refazer", action="store_true", help="reprocessa documentos já extraídos")
+    p.add_argument("--revincular", action="store_true",
+                   help="refaz só o vínculo prova↔gabarito/justificativas/padrões de todos os concursos selecionados")
 
     p = sub.add_parser("validate", help="valida a consistência e gera a amostra de revisão")
     _filtros(p)
@@ -60,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
         res = download(con, Cliente(), limite=a.limite, editais=a.editais, **filtros)
     elif a.cmd == "extract":
         from .extract import extract
-        res = extract(con, refazer=a.refazer, **filtros)
+        res = extract(con, refazer=a.refazer, revincular=a.revincular, **filtros)
     elif a.cmd == "validate":
         from .validate import validate
         res = validate(con, amostra=a.amostra, seed=a.seed, **filtros)

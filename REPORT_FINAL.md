@@ -1,6 +1,6 @@
 # Relatório final — banco de questões Cebraspe
 
-Gerado em 2026-11-15T01:27:16+00:00 a partir de `cebraspe.db`.
+Gerado em 2026-11-15T02:38:38+00:00 a partir de `cebraspe.db`.
 
 ## Visão geral
 
@@ -11,32 +11,32 @@ Gerado em 2026-11-15T01:27:16+00:00 a partir de `cebraspe.db`.
 | Concursos com provas extraídas | 426 |
 | Documentos baixados | 11152 (2.70 GB) |
 | Provas processadas | 5212 |
-| Provas com extração completa | 4902 (94.1%) |
-| Provas parciais / falhas | 291 / 19 |
+| Provas com extração completa | 4959 (95.1%) |
+| Provas parciais / falhas | 234 / 19 |
 
 ## Questões por tipo
 
 | Tipo | Questões |
 |---|---|
-| CE | 156559 |
-| ME | 53162 |
-| DISC | 9352 |
+| CE | 156791 |
+| ME | 53204 |
+| DISC | 9490 |
 
 ### Itens de opção de língua estrangeira
 
 | Variante | Questões | Com gabarito definitivo |
 |---|---|---|
-| LÍNGUA ESPANHOLA | 63 | 45 |
 | LÍNGUA INGLESA | 45 | 45 |
+| LÍNGUA ESPANHOLA | 45 | 45 |
 | LÍNGUA FRANCESA | 10 | 10 |
 
 ## Gabaritos
 
-Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **10894** (5.2% de 209721). Cada caso tem pendência com o motivo.
+Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **10819** (5.2% de 209995). Cada caso tem pendência com o motivo.
 
 | Com definitivo | Com preliminar | Anuladas | Alteradas | Com justificativa | Com padrão de resposta |
 |---|---|---|---|---|---|
-| 188656 | 21700 | 5609 | 880 | 12541 | 6077 |
+| 189013 | 22540 | 5641 | 1084 | 13442 | 6123 |
 
 ## Concursos e questões por ano
 
@@ -45,17 +45,17 @@ Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **10894** (5.2% de
 |  | 1 | 0 | 0 |
 | 2014 | 4 | 0 | 0 |
 | 2015 | 35 | 66 | 3345 |
-| 2016 | 21 | 324 | 13319 |
-| 2017 | 31 | 254 | 12766 |
-| 2018 | 37 | 445 | 21460 |
-| 2019 | 24 | 184 | 10891 |
-| 2020 | 28 | 285 | 14360 |
-| 2021 | 59 | 486 | 21556 |
-| 2022 | 52 | 438 | 17858 |
-| 2023 | 57 | 718 | 27907 |
-| 2024 | 47 | 1063 | 39896 |
-| 2025 | 50 | 584 | 20797 |
-| 2026 | 54 | 365 | 14918 |
+| 2016 | 21 | 324 | 13302 |
+| 2017 | 31 | 254 | 12814 |
+| 2018 | 37 | 445 | 21462 |
+| 2019 | 24 | 184 | 11005 |
+| 2020 | 28 | 285 | 14396 |
+| 2021 | 59 | 486 | 21595 |
+| 2022 | 52 | 438 | 17889 |
+| 2023 | 57 | 718 | 27983 |
+| 2024 | 47 | 1063 | 39951 |
+| 2025 | 50 | 584 | 20823 |
+| 2026 | 54 | 365 | 14920 |
 
 ## Fonte do ano do concurso
 
@@ -73,7 +73,7 @@ Lista completa em `data/pendencias.csv`.
 
 | Etapa | Motivo (números agrupados) | Ocorrências |
 |---|---|---|
-| ano | concurso sem ano identificável | 3 |
+| ano | concurso sem ano identificável | 5 |
 | classificacao | prova inferida só pelo nome do arquivo | 23 |
 | classificacao | gabarito sem fase clara (preliminar/definitivo) | 8 |
 | classificacao | gabarito sem fase clara (preliminar/definitivo); sem código de prova no nome (vínculo depende do texto do PDF) | 1 |
@@ -82,29 +82,36 @@ Lista completa em `data/pendencias.csv`.
 | download | HTTP N | 10 |
 | download | nome do arquivo corrompido na API (caractere inválido); URL irrecuperável | 7 |
 | extracao | nenhuma questão segmentada | 19 |
-| gabarito | padrão de resposta sem prova discursiva correspondente (N candidatas) | 332 |
-| gabarito | justificativas da seção 'None' sem prova correspondente | 21 |
+| gabarito | padrão de resposta sem prova discursiva correspondente (N candidatas) | 340 |
+| gabarito | justificativas da seção 'None' sem prova correspondente | 22 |
 | gabarito | prova com gabarito embutido, mas nenhuma resposta reconhecida | 19 |
-| gabarito | justificativas: nenhuma linha de tabela reconhecida | 18 |
 | gabarito | nenhuma tabela de gabarito reconhecida no PDF | 17 |
-| gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N' sem prova correspondente | 13 |
+| gabarito | justificativas: nenhuma linha de tabela reconhecida | 15 |
+| gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N' sem prova correspondente | 14 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODAS AS OPÇÕES DO CARGO DE PESQUISADOR / OPÇÃO N: PESQUISADOR – ÁREA: CIÊNCIAS AGRÁRIAS  | 12 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS BÁSICOS PARA O CARGO DE MONITOR DE GESTÃO EDUCACIONAL / CARGO N: PROFESSOR DE EDUCAÇÃO BÁSI | 9 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS DE NÍVEL MÉDIO / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIALIZAD | 9 |
+| gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N – ÁREA N' sem prova correspondente | 8 |
 | gabarito | fase no PDF (preliminar) difere da classificação (definitivo) | 6 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL MÉDIO / CARGO N: ANALISTA MINISTERIAL ESPECIALIZADO – ÁREA DE AT | 6 |
-| gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N – ÁREA N' sem prova correspondente | 5 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODAS AS OPÇÕES DO CARGO DE PESQUISADOR / OPÇÃO N: PESQUISADOR – ÁREA: CIÊNCIAS EXATAS E  | 5 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR, EXCETO PARA OS CARGOS N, N E N / CARGO N: AUDITOR EM SAÚDE – | 5 |
 | gabarito | justificativas da seção 'TIPO N PERFIL II: ANALISTA TÉCNICO II – EDUCAÇÃO' ambíguas entre N provas | 4 |
 | gabarito | justificativas da seção 'TIPO N PERFIL N: ANALISTA TÉCNICO II – AUDITORIA INTERNA' ambíguas entre N provas | 4 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODAS AS OPÇÕES DO CARGO DE PESQUISADOR / OPÇÃO N: PESQUISADOR – ÁREA: CIÊNCIAS BIOLÓGICA | 4 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS' sem prova correspondente | 3 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: NEURO | 3 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: MEDIC | 3 |
-| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS BÁSICOS PARA OS CARGOS DE PERITO CRIMINAL FEDERAL (TODAS AS ÁREAS) / CARGO N: PERITO CRIMINA | 3 |
-| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS SOMENTE PARA OS CARGOS N E N / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIALIZADO – ESPE | 3 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODAS AS OPÇÕES DO CARGO DE PESQUISADOR / CN - CONHECIMENTOS COMPLEMENTARES PARA A OPÇÃO  | 3 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE N A N / CARGO N' sem prova correspondente | 3 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS ARTE / QUÍMICA' ambíguas entre N provas | 2 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS ARTE / FILOSOFIA' ambíguas entre N provas | 2 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS ARTE / EIXO RECURSOS NATURAIS ‐ RN' ambíguas entre N provas | 2 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS ARTE / EIXO PRODUÇÃO INDUSTRIAL ‐ PI' ambíguas entre N provas | 2 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS ARTE / EIXO INFRAESTRUTURA ‐ IE' ambíguas entre N provas | 2 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS ARTE / EIXO GESTÃO E NEGÓCIOS ‐ GN' ambíguas entre N provas | 2 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS ARTE / EIXO AMBIENTE E SAÚDE ‐ AS' ambíguas entre N provas | 2 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS ARTE / CIÊNCIAS' ambíguas entre N provas | 2 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR' sem prova correspondente | 2 |
 | gabarito | justificativas da seção 'HABILITAÇÃO N: LIBRAS' sem prova correspondente | 2 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS SOMENTE PARA O CARGO N / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIALIZADO – ESPECIALI | 2 |
@@ -117,7 +124,8 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N: FISIOTERAPEUTA – ÁREA: TERAPIA INTE | 2 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS BÁSICOS PARA O CARGO DE MONITOR DE GESTÃO EDUCACIONAL / CARGO N – ANALISTA DE GESTÃO EDUCAC | 2 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS GERAIS PARA O CARGO N' sem prova correspondente | 2 |
-| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: TÉCNICO DE SISTEMAS DE SANEAMENTO – ESPECIALIDADE: TÉCNICO | 2 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS SOMENTE PARA OS CARGOS N E N / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIALIZADO – ESPE | 2 |
+| gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N' ambíguas entre N provas | 2 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS – BLOCO II – PARA OS CARGOS N, N E N / CARGO N: PERITO CRIMINAL FEDERAL – ÁREA N: ENGENHARIA  | 2 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: ESPECIALISTA EM GESTÃO DE TELECOMUNICAÇÕES – ANALISTA SUPERIO | 2 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: AUDITOR FISCAL DA RECEITA ESTADUAL' sem prova correspondente | 2 |
@@ -132,6 +140,7 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | tabela não confiável: N itens com respostas conflitantes; descartada | 1 |
 | gabarito | justificativas da seção 'Área Profissional: Saúde Coletiva – Programa: Multiprofissional em Atenção Básica' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'Área Profissional: Enfermagem – Programas: Multiprofissional em Atenção Básica e Atenção Cardíaca' sem prova corres | 1 |
+| gabarito | justificativas da seção 'PRÉ‐REQUISITO EM PEDIATRIA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: ULTRA | 1 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: REUMA | 1 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: PSIQU | 1 |
@@ -144,6 +153,7 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: ENDOC | 1 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: ANEST | 1 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: CIRUR | 1 |
+| gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N: ENFERMEIRO – ÁREA: CARDIOLOGIA' amb | 1 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N: ANALISTA ADMINISTRATIVO – ESPECIALI | 1 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N: FONOAUDIÓLOGO' ambíguas entre N pro | 1 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N: FÍSICO – ÁREA: FÍSICA MÉDICA – ESPE | 1 |
@@ -172,9 +182,12 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS GERAIS / CARGO N: OFICIAL TÉCNICO DE INTELIGÊNCIA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS GERAIS (PN)' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGOS DE N A N: PROFESSOR DE EDUCAÇÃO BÁSICA' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: TÉCNICO MINISTERIAL' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ANALISTA JURÍDICO – ESPECIALIDADE: FARMÁCIA' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ANALISTA JUDICIÁRIO – ESPECIALIDADE: PSICOLOGIA' ambíguas entre N pro | 1 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ANALISTA MINISTERIAL – ÁREA: SERVIÇO SOCIAL' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ANALISTA JURÍDICO – ESPECIALIDADE: ESTATÍSTICA' sem prova corresponde | 1 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ANALISTA MINISTERIAL – ÁREA: PSICOLOGIA' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ANALISTA JURÍDICO – ESPECIALIDADE: DIREITO E LEGISLAÇÃO' sem prova co | 1 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ANALISTA DE CONTROLE – ÁREA: ENGENHARIA ELÉTRICA' sem prova correspon | 1 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ANALISTA MINISTERIAL – ÁREA: ENGENHARIA CIVIL' sem prova corresponden | 1 |
@@ -213,6 +226,7 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS DE NÍVEL MÉDIO' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: PROFESSOR DE EDUCAÇÃO BÁSICA – EDUCAÇÃO INFANTIL E E | 1 |
+| gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS BÁSICOS PARA OS CARGOS DE PERITO CRIMINAL FEDERAL (TODAS AS ÁREAS) / CARGO N: PERITO CRIMINA | 1 |
 | gabarito | justificativas da seção 'PROGRAMAS DE RESIDÊNCIA MÉDICA EM ESPECIALIDADES EM ÁREA DE ATUAÇÃO COM EXIGÊNCIA DE PRÉ‐ REQUISITO EM RADIOLOGIA E | 1 |
 | gabarito | justificativas da seção 'PROGRAMA DE RESIDÊNCIA MÉDICA EM ESPECIALIDADES COM EXIGÊNCIA DE PRÉ-REQUISITO EM CLÍNICA MÉDICA – PROGRAMAS: CANCE | 1 |
 | gabarito | justificativas da seção 'PROGRAMA DE RESIDÊNCIA MÉDICA EM ESPECIALIDADES COM EXIGÊNCIA DE PRÉ-REQUISITO EM CIRURGIA- GERAL – PROGRAMAS: CIRU | 1 |
@@ -269,13 +283,19 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS SOMENTE PARA OS CARGOS N A N / CARGO N: ESPECIALISTA EM RECURSOS MINERAIS – ESPECIALIDADE: DIR | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS SOMENTE PARA OS CARGOS N A N / CARGO N: ANALISTA ADMINISTRATIVO – ESPECIALIDADE: QUALQUER ÁREA | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS SOMENTE PARA O EMPREGO N / EMPREGO N: ANALISTA – ESPECIALIDADE: SEGURIDADE' ambíguas entre N p | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS SOMENTE PARA O CARGO N / CARGO N: ANALISTA DE GESTÃO EDUCACIONAL – ESPECIALIDADE: FONOAUDIOLOG | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS SOMENTE PARA O CARGO N / CARGO N: ANALISTA DE GESTÃO EDUCACIONAL – ESPECIALIDADE: CIÊNCIAS CON | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS/AS ÁREAS / ÁREA N: ANALISTA – GESTÃO CORPORATIVA' ambíguas entre N provas | 1 |
-| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: ENFERMEIRO' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: NUTRICIONISTA' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: UROLOGIA' ambíguas e | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: OBSTETRÍCIA' ambígua | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: NEUROPEDIATRIA' ambí | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: NEONATALOGIA' ambígu | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: GINECOLOGIA' ambígua | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: ENDOSCOPIA' ambíguas | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: CIRURGIA VASCULAR' a | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: CIRURGIA CARDÍACA' a | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: CARDIOPEDIATRIA' amb | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS / CARGO N: COMUNICADOR SOCIAL' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS / CARGO N: ANALISTA JUDICIÁRIO – GRUPO: NÍVEL SUPERIOR – SEM ESPECIALIDAD | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS / CARGO N: ANALISTA DE PLANEJAMENTO E ORÇAMENTO – ESPECIALIDADE: GESTÃO D | 1 |
@@ -311,12 +331,18 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODAS AS OPÇÕES DO CARGO DE PESQUISADOR / OPÇÃO N: PESQUISADOR – ÁREA: CIÊNCIAS SOCIAIS A | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS EMPREGOS DE N A N E N' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS EMPREGOS N, N E N' sem prova correspondente | 1 |
-| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR, EXCETO PARA OS CARGOS N, N E N / CARGO N: ARQUITETO' ambígua | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR, EXCETO PARA OS CARGOS N, N E N / CARGO N: AUDITOR DE SAÚDE – | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR, EXCETO PARA OS CARGOS N, N E N / CARGO N: PROFISSIONAL DE ED | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR, EXCETO PARA OS CARGOS N, N E N / CARGO N: MÉDICO ORTOPEDISTA | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR, EXCETO PARA OS CARGOS N, N E N / CARGO N: MÉDICO OFTALMOLOGI | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR, EXCETO PARA OS CARGOS N, N E N / CARGO N: MÉDICO CLÍNICO GER | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR, EXCETO PARA OS CARGOS N, N E N / CARGO N: MÉDICO AUDITOR' am | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR, EXCETO PARA OS CARGOS N, N E N / CARGO N: FONOAUDIÓLOGO' amb | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR, EXCETO PARA OS CARGOS N, N E N / CARGO N: ENGENHEIRO ELETRIC | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N: ARQUITETO' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N: TÉCNICO EM GEOPROCESSAMENTO' ambíguas entre N prov | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N: ENGENHEIRO DE SEGURANÇA DO TRABALHO' ambíguas entr | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N: JORNALISTA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE ANALISTA LEGISLATIVO, EXCETO PARA AS ÁREAS: CONSULTORIA TÉCNICA LEGISLATIVA, | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE N A N / CARGO N: MÉDICO – ESPECIALIDADE: DERMATOLOGISTA' ambíguas entre N pr | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE N A N / CARGO N: PSICÓLOGO' ambíguas entre N provas | 1 |
@@ -358,6 +384,7 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N AO N / CARGO N: PROFESSOR DE EDUCAÇÃO BÁSICA – PEB C – ARTE' ambíguas entre N | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N AO N / CARGO N: PROFESSOR DE EDUCAÇÃO BÁSICA – PEB B' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: AGENTE DE SUPORTE AO NEGÓCIO – ESPECIALIDADE: ASSISTENTE A | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: TÉCNICO DE SISTEMAS DE SANEAMENTO – ESPECIALIDADE: TÉCNICO | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: ANALISTA DE SUPORTE AO NEGÓCIO – ESPECIALIDADE: CONTADOR'  | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: ANALISTA DE SUPORTE AO NEGÓCIO – ESPECIALIDADE: ANALISTA D | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: ANALISTA DE SUPORTE AO NEGÓCIO – ESPECIALIDADE: ADMINISTRA | 1 |
@@ -375,7 +402,6 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N: ANALISTA LEGISLATIVO – ÁREA: CONSULTORIA TÉCNICA LEGISLATIVA' ambíguas entre N | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N: ESPECIALISTA FEDERAL EM ASSISTÊNCIA À EXECUÇÃO PENAL - ÁREA: MÉDICO PSIQUIATRA | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N: ANALISTA LEGISLATIVO – ÁREA: ARQUITETURA E URBANISMO' ambíguas entre N provas | 1 |
-| gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N: ANALISTA LEGISLATIVO – ÁREA: ENGENHARIA ELÉTRICA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS - PROGRAMA MULTIPROFISSIONAL EM ATENÇÃO BÁSICA - ÁREA PROFISSIONAL: SAÚDE COLETIVA' sem p | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS - PROGRAMA MULTIPROFISSIONAL EM ATENÇÃO BÁSICA - ÁREA PROFISSIONAL: ENFERMAGEM' sem prova | 1 |
@@ -391,14 +417,16 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS SOMENTE PARA O CARGO N / CARGO N: ANALISTA DE APOIO ÀS ATIVIDADES POLICIAIS CIVIS – ESPECIALI | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS SOMENTE PARA O CARGO N / CARGO N: GESTOR DE APOIO ÀS ATIVIDADES POLICIAIS CIVIS – ESPECIALIDA | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: ANALISTA EM DESENVOLVIMENTO REGIONAL – ÁREA: ENGENHARIA MECÂN | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: ESPECIALISTA EM REGULAÇÃO DE SERVIÇOS PÚBLICOS DE TELECOMUNIC | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: AUDITOR FISCAL DE TECNOLOGIA DA INFORMAÇÃO DA RECEITA ESTADUA | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: ESPECIALISTA EM REGULAÇÃO DE AVIAÇÃO CIVIL – ÁREA N' ambíguas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: AUDITOR FISCAL JURÍDICO DA RECEITA ESTADUAL' sem prova corres | 1 |
-| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: ESPECIALISTA EM REGULAÇÃO DE SERVIÇOS PÚBLICOS DE TELECOMUNIC | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: ESPECIALISTA EM GESTÃO DE TELECOMUNICAÇÕES – ANALISTA DE TECN | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: AUDITOR FISCAL CONTÁBIL-FINANCEIRO DA RECEITA ESTADUAL' sem p | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: AUDITOR DE FINANÇAS E CONTROLE DE ARRECADAÇÃO DA FAZENDA ESTA | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: TECNOLOGISTA PLENO N – N – ÁREA DE ATUAÇÃO: DESERTIFICAÇÃO (C | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: PROFESSOR – ESPECIALIDADE: INGLÊS' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: PROFESSOR – ESPECIALIDADE: HISTÓRIA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: ESPECIALISTA EM GESTÃO DE TELECOMUNICAÇÕES – ENGENHEIRO – SUB | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: ESPECIALISTA EM GESTÃO DE TELECOMUNICAÇÕES – CONTADOR' ambígu | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS PERFIS N E N / PERFIL N: AQUISIÇÕES E JURÍDICO' ambíguas entre N provas | 1 |
@@ -406,6 +434,7 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS EMPREGOS N E N / EMPREGO N: ASSISTENTE DE TECNOLOGIA DA INFORMAÇÃO' ambíguas entre N  | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS EMPREGOS N E N A N' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS DE NÍVEL SUPERIOR (EXCETO CARGO N: PROCURADOR LEGISLATIVO) / CARGO N: APOIO AD | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS DE NÍVEL MÉDIO / ÊNFASE N: PROJETOS, CONSTRUÇÃO E MONTAGEM – MECÂNICA' ambígua | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS DE NÍVEL MÉDIO / CARGO N: ANALISTA JÚNIOR – ÊNFASE: JURÍDICO' ambíguas entre N | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS DE NÍVEL MÉDIO / CARGO N: ENGENHEIRO JÚNIOR – ÊNFASE: PROJETOS E OBRAS, CIVIL' | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS DE NÍVEL FUNDAMENTAL / CARGO N: AUXILIAR ADMINISTRATIVO' ambíguas entre N prov | 1 |
@@ -422,10 +451,13 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N E N / CARGO N: TÉCNICO JUDICIÁRIO ‐ ÁREA DE ATIVIDADE: APOIO ESPECIALIZADO ‐ | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N AO N / CARGO N: ANALISTA DE PROCURADORIA – ESPECIALIDADE: DIREITO' ambíguas  | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N E N / CARGO N: PERITO CRIMINAL – ESPECIALIDADE: ENGENHARIA CIVIL' ambíguas e | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N E N / CARGO N: PERITO CRIMINAL – ESPECIALIDADE: FÍSICA' ambíguas entre N pro | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N, N, N, N E N / CARGO N: AUDITOR DE CONTROLE EXTERNO – ÁREA: CONTABILIDADE' a | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N, N, N, N E N / CARGO N: AUDITOR DE CONTROLE EXTERNO – ÁREA: ADMINISTRAÇÃO' a | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N E N / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: JUDICIÁRIA – ESPECIALIDADE: OFICI | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N E N / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: JUDICIÁRIA' ambíguas entre N prov | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N E N / CARGO N: ANALISTA DO CNMP – ÁREA: TECNOLOGIA DA INFORMAÇÃO E COMUNICAÇ | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N E N / CARGO N: ANALISTA DO CNMP – ÁREA: APOIO TÉCNICO ESPECIALIZADO – ESPECI | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N AO N / CARGO N: MÉDICO PSIQUIATRA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N AO N / CARGO N: CONTADOR' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N AO N / CARGO N: ANALISTA REGULADOR – PERFIL: DIREITO' ambíguas entre N prova | 1 |
@@ -435,6 +467,8 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS CARGOS N A N / CARGO N: ASSISTENTE AMBIENTAL' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO DE SOLDADO DE PRAÇA POLICIAL / CARGO N: TENENTE PM – MÉDICO-VETERINÁRIO' ambígua | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO DE SOLDADO DE PRAÇA POLICIAL / CARGO N: TENENTE PM – MÉDICO' ambíguas entre N pr | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO N / CARGO N: ASSISTENTE DE PROCURADORIA' sem prova correspondente | 1 |
+| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO N / CARGO N: ANALISTA ADMINISTRATIVO DE PROCURADORIA – ESPECIALIDADE: RECURSOS H | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO N / CARGO N: ASSISTENTE EM ADMINISTRAÇÃO' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO N / CARGO N: ENGENHEIRO AGRONÔMICO' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO N / CARGO N: TÉCNICO DE TECNOLOGIA DA INFORMAÇÃO' ambíguas entre N provas | 1 |
@@ -460,7 +494,9 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CARGO N: ESPECIALISTA PORTUÁRIO – ÁREA: ARQUITETURA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – ESPECIALIDADE: OFICIAL DE JUSTIÇA AVALIADOR' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – ESPECIALIDADE: CIÊNCIAS CONTÁBEIS' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – APOIO ESPECIALIZADO – ESPECIALIDADE – CONTABILIDADE' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: PROFESSOR – DO Nº AO Nº ANO – ENSINO FUNDAMENTAL – ESPECIALIDADE: CIÊNCIAS' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – APOIO ESPECIALIZADO – ESPECIALIDADE – COMUNICAÇÃO SOCIAL' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA DE PREVIDÊNCIA COMPLEMENTAR – ÁREA N: JURÍDICA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA ADMINISTRATIVO – ÁREA: DIREITO' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – ESPECIALIDADE: DIREITO' ambíguas entre N provas | 1 |
@@ -473,8 +509,8 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CARGO N: ANALISTA DE CONTROLE EXTERNO – ÁREA DE GRADUAÇÃO/ESPECIALIDADE: CIÊNCIA DA COMPUTAÇÃO' ambíguas entre N pr | 1 |
 | gabarito | justificativas da seção 'CARGO N: ESCRIVÃO DE POLÍCIA' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CARGO N: DELEGADO DE POLÍCIA CIVIL' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'CARGO N: AUDITOR DE CONTROLE EXTERNO – ÁREA ESPECIALIZADA – ESPECIALIDADE TECNOLOGIA DA INFORMAÇÃO – ORIENTAÇÃO SIS | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIALIZADO – ESPECIALIDADE: ANÁLISE DE SISTEMAS' sem prova correspond | 1 |
-| gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – ESPECIALIDADE: ANÁLISE DE SISTEMAS' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CARGO N: TÉCNICO BANCÁRIO I' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CARGO N: TÉCNICO ADMINISTRATIVO' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CARGO N: SOLDADO COMBATENTE' sem prova correspondente | 1 |
@@ -485,7 +521,7 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CARGO N: ANALISTA DE PREVIDÊNCIA COMPLEMENTAR – ÁREA N: GOVERNANÇA, AUDITORIA, CONTROLE E CONFORMIDADE' ambíguas en | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA DE CONTROLE EXTERNO – ÁREA DE GRADUAÇÃO/ESPECIALIDADE: CIÊNCIAS ATUARIAIS' ambíguas entre N prova | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA BANCÁRIO N' sem prova correspondente | 1 |
-| gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO ESPECIAL – ÁREA JUDICIÁRIA – ESPECIALIDADE – CONTADOR' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – APOIO ESPECIALIZADO – ESPECIALIDADE – TAQUIGRAFIA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: TÉCNICO BANCÁRIO III – ÁREA: INFORMÁTICA – ESPECIALIDADE: DESENVOLVIMENTO' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CARGO N: OFICIAL COMBATENTE' sem prova correspondente | 1 |
@@ -495,13 +531,17 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – ÁREA: ADMINISTRATIVA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA ADMINISTRATIVO DE CONTROLE EXTERNO – ÁREA DE GESTÃO – ESPECIALIDADE SERVIÇOS TÉCNICOS E ADMINISTR | 1 |
 | gabarito | justificativas da seção 'CARGO N: AGENTE DE POLÍCIA' sem prova correspondente | 1 |
+| gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – APOIO ESPECIALIZADO – ESPECIALIDADE – PSICOLOGIA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – ESPECIALIDADE: FISCAL DE ARRECADAÇÃO' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – APOIO ESPECIALIZADO – ESPECIALIDADE – MEDICINA DO TRABALHO' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – ESPECIALIDADE: ESTATÍSTICA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA DE GESTÃO DE RESÍDUOS SÓLIDOS – ESPECIALIDADE: ENGENHARIA QUÍMICA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – ESPECIALIDADE: ENGENHARIA MECÂNICA' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – APOIO ESPECIALIZADO – ESPECIALIDADE – ENGENHARIA ELÉTRICA' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: PERITO CRIMINAL – ÁREA N: CIÊNCIA DA COMPUTAÇÃO, ENGENHARIA DA COMPUTAÇÃO OU SISTEMAS DE INFORMAÇÃO' ambíg | 1 |
 | gabarito | justificativas da seção 'CARGO N: GESTOR EM PLANEJAMENTO DE EDUCAÇÃO – ÁREA: PLANEJAMENTO' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ESPECIALISTA PORTUÁRIO – ÁREA: ENGENHARIA MECÂNICA' ambíguas entre N provas | 1 |
+| gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – APOIO ESPECIALIZADO – ESPECIALIDADE – ENFERMAGEM' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CN - CONHECIMENTOS COMPLEMENTARES PARA AS OPÇÕES N, N' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CN - CONHECIMENTOS COMPLEMENTARES PARA A OPÇÃO N' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'BLOCO II / PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ASSISTENTE DE PROJETO – ENFERMEIRO DO TRABALHO – UGP' ambí | 1 |
@@ -512,9 +552,9 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'BLOCO II / PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ASSISTENTE DE PROJETO – PERFIL N – USI' ambíguas entre N p | 1 |
 | gabarito | justificativas da seção 'BLOCO II / PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ASSISTENTE DE PROJETO – PERFIL N – UDIGIS' ambíguas entre  | 1 |
 | gabarito | justificativas da seção 'BLOCO I - CBN / PROVA DE CONHECIMENTOS BÁSICOS PARA OS CARGOS DE NÍVEL MÉDIO' sem prova correspondente | 1 |
-| validacao | N questão(ões) sem gabarito: […] | 213 |
-| validacao | nº de itens extraídos (N) difere do gabarito (N) | 176 |
-| validacao | prova sem gabarito vinculado | 113 |
+| validacao | N questão(ões) sem gabarito: […] | 197 |
+| validacao | nº de itens extraídos (N) difere do gabarito (N) | 121 |
+| validacao | prova sem gabarito vinculado | 112 |
 
 ## Observações de método
 

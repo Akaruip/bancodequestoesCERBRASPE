@@ -251,7 +251,7 @@ def _processa_prova(con, doc, concurso) -> None:
 # ---------------------------------------------------------------- justificativas e padrões
 def _processa_justificativa(con, doc) -> None:
     _resolve_doc(con, doc)
-    linhas = just.parse(ler(_abs(doc["arquivo_local"])))
+    linhas = just.parse(ler(_abs(doc["arquivo_local"]), colunas=False))
     con.execute("DELETE FROM justificativa_bruta WHERE documento_id=?", (doc["id"],))
     con.executemany(
         "INSERT INTO justificativa_bruta(documento_id, secao, ordem, numero, preliminar, definitiva, situacao, texto) "
@@ -464,7 +464,7 @@ def _aplica_padroes(con, concurso_id: int) -> None:
             db.pendencia(con, "gabarito", f"padrão de resposta sem prova discursiva correspondente ({len(alvo)} candidatas)",
                          concurso_id, pad["id"])
             continue
-        texto = ler(_abs(pad["arquivo_local"])).texto
+        texto = ler(_abs(pad["arquivo_local"]), colunas=False).texto
         partes = re.split(r"(?im)^\s*QUEST[ÃA]O\s+(\d+)\s*$", texto)
         qs = con.execute("SELECT id, numero FROM questao WHERE prova_id=? AND tipo='DISC'", (alvo[0]["id"],)).fetchall()
         por_num = {}
@@ -506,7 +506,7 @@ def validar_provas(con, concurso_id: int) -> None:
 
 
 # ---------------------------------------------------------------- orquestração
-def extract(con, slugs=None, ano=None, desde=None, refazer: bool = False) -> dict:
+def extract(con, slugs=None, ano=None, desde=None, refazer: bool = False, revincular: bool = False) -> dict:
     q = "SELECT * FROM concurso WHERE detalhe_ok=1"
     args: list = []
     if slugs:
@@ -555,7 +555,7 @@ def extract(con, slugs=None, ano=None, desde=None, refazer: bool = False) -> dic
                 db.pendencia(con, "extracao", f"erro: {type(e).__name__}: {str(e)[:200]}", c["id"], d["id"])
                 _marca(con, d, "erro")
             con.commit()
-        if mudou or refazer:
+        if mudou or refazer or revincular:
             vincular(con, c["id"])
             validar_provas(con, c["id"])
             con.commit()
