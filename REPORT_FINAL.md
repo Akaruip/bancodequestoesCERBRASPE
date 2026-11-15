@@ -1,6 +1,6 @@
 # Relatório final — banco de questões Cebraspe
 
-Gerado em 2026-11-15T00:24:44+00:00 a partir de `cebraspe.db`.
+Gerado em 2026-11-15T01:27:16+00:00 a partir de `cebraspe.db`.
 
 ## Visão geral
 
@@ -11,24 +11,32 @@ Gerado em 2026-11-15T00:24:44+00:00 a partir de `cebraspe.db`.
 | Concursos com provas extraídas | 426 |
 | Documentos baixados | 11152 (2.70 GB) |
 | Provas processadas | 5212 |
-| Provas com extração completa | 4948 (94.9%) |
-| Provas parciais / falhas | 245 / 19 |
+| Provas com extração completa | 4902 (94.1%) |
+| Provas parciais / falhas | 291 / 19 |
 
 ## Questões por tipo
 
 | Tipo | Questões |
 |---|---|
-| CE | 156679 |
-| ME | 53199 |
-| DISC | 9397 |
+| CE | 156559 |
+| ME | 53162 |
+| DISC | 9352 |
+
+### Itens de opção de língua estrangeira
+
+| Variante | Questões | Com gabarito definitivo |
+|---|---|---|
+| LÍNGUA ESPANHOLA | 63 | 45 |
+| LÍNGUA INGLESA | 45 | 45 |
+| LÍNGUA FRANCESA | 10 | 10 |
 
 ## Gabaritos
 
-Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **10821** (5.2% de 209878). Cada caso tem pendência com o motivo.
+Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **10894** (5.2% de 209721). Cada caso tem pendência com o motivo.
 
 | Com definitivo | Com preliminar | Anuladas | Alteradas | Com justificativa | Com padrão de resposta |
 |---|---|---|---|---|---|
-| 188887 | 21722 | 5624 | 889 | 12544 | 6119 |
+| 188656 | 21700 | 5609 | 880 | 12541 | 6077 |
 
 ## Concursos e questões por ano
 
@@ -36,18 +44,18 @@ Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **10821** (5.2% de
 |---|---|---|---|
 |  | 1 | 0 | 0 |
 | 2014 | 4 | 0 | 0 |
-| 2015 | 35 | 66 | 3343 |
-| 2016 | 21 | 324 | 13323 |
-| 2017 | 31 | 254 | 12757 |
-| 2018 | 37 | 445 | 21457 |
-| 2019 | 24 | 184 | 10913 |
-| 2020 | 28 | 285 | 14406 |
-| 2021 | 59 | 486 | 21571 |
-| 2022 | 52 | 438 | 17850 |
-| 2023 | 57 | 718 | 27953 |
-| 2024 | 47 | 1063 | 39959 |
-| 2025 | 50 | 584 | 20823 |
-| 2026 | 54 | 365 | 14920 |
+| 2015 | 35 | 66 | 3345 |
+| 2016 | 21 | 324 | 13319 |
+| 2017 | 31 | 254 | 12766 |
+| 2018 | 37 | 445 | 21460 |
+| 2019 | 24 | 184 | 10891 |
+| 2020 | 28 | 285 | 14360 |
+| 2021 | 59 | 486 | 21556 |
+| 2022 | 52 | 438 | 17858 |
+| 2023 | 57 | 718 | 27907 |
+| 2024 | 47 | 1063 | 39896 |
+| 2025 | 50 | 584 | 20797 |
+| 2026 | 54 | 365 | 14918 |
 
 ## Fonte do ano do concurso
 
@@ -65,7 +73,7 @@ Lista completa em `data/pendencias.csv`.
 
 | Etapa | Motivo (números agrupados) | Ocorrências |
 |---|---|---|
-| ano | concurso sem ano identificável | 2 |
+| ano | concurso sem ano identificável | 3 |
 | classificacao | prova inferida só pelo nome do arquivo | 23 |
 | classificacao | gabarito sem fase clara (preliminar/definitivo) | 8 |
 | classificacao | gabarito sem fase clara (preliminar/definitivo); sem código de prova no nome (vínculo depende do texto do PDF) | 1 |
@@ -73,39 +81,20 @@ Lista completa em `data/pendencias.csv`.
 | crawl | concurso de teste publicado na API; ignorado | 1 |
 | download | HTTP N | 10 |
 | download | nome do arquivo corrompido na API (caractere inválido); URL irrecuperável | 7 |
-| extracao | nenhuma questão segmentada | 26 |
+| extracao | nenhuma questão segmentada | 19 |
 | gabarito | padrão de resposta sem prova discursiva correspondente (N candidatas) | 332 |
-| gabarito | prova com gabarito embutido, mas nenhuma resposta reconhecida | 29 |
 | gabarito | justificativas da seção 'None' sem prova correspondente | 21 |
-| gabarito | item N com duas respostas (E/C) | 21 |
+| gabarito | prova com gabarito embutido, mas nenhuma resposta reconhecida | 19 |
 | gabarito | justificativas: nenhuma linha de tabela reconhecida | 18 |
-| gabarito | item N com duas respostas (C/E) | 18 |
 | gabarito | nenhuma tabela de gabarito reconhecida no PDF | 17 |
+| gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N' sem prova correspondente | 13 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODAS AS OPÇÕES DO CARGO DE PESQUISADOR / OPÇÃO N: PESQUISADOR – ÁREA: CIÊNCIAS AGRÁRIAS  | 12 |
-| gabarito | item N com duas respostas (A/C) | 12 |
-| gabarito | item N com duas respostas (E/D) | 10 |
-| gabarito | item N com duas respostas (E/A) | 10 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS BÁSICOS PARA O CARGO DE MONITOR DE GESTÃO EDUCACIONAL / CARGO N: PROFESSOR DE EDUCAÇÃO BÁSI | 9 |
-| gabarito | item N com duas respostas (B/A) | 9 |
-| gabarito | item N com duas respostas (D/B) | 9 |
-| gabarito | item N com duas respostas (A/B) | 9 |
-| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS DE NÍVEL MÉDIO / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIALIZAD | 8 |
-| gabarito | item N com duas respostas (E/B) | 8 |
-| gabarito | item N com duas respostas (A/E) | 8 |
-| gabarito | item N com duas respostas (B/E) | 8 |
-| gabarito | item N com duas respostas (C/A) | 8 |
-| gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N' sem prova correspondente | 7 |
-| gabarito | item N com duas respostas (C/B) | 7 |
+| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS DE NÍVEL MÉDIO / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIALIZAD | 9 |
 | gabarito | fase no PDF (preliminar) difere da classificação (definitivo) | 6 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODOS OS CARGOS DE NÍVEL MÉDIO / CARGO N: ANALISTA MINISTERIAL ESPECIALIZADO – ÁREA DE AT | 6 |
-| gabarito | itens […] com respostas diferentes na mesma página (ex.: opções de língua estrangeira); deixados sem resposta | 6 |
-| gabarito | item N com duas respostas (B/C) | 6 |
-| gabarito | item N com duas respostas (D/E) | 6 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N – ÁREA N' sem prova correspondente | 5 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODAS AS OPÇÕES DO CARGO DE PESQUISADOR / OPÇÃO N: PESQUISADOR – ÁREA: CIÊNCIAS EXATAS E  | 5 |
-| gabarito | item N com duas respostas (B/D) | 5 |
-| gabarito | item N com duas respostas (C/D) | 5 |
-| gabarito | item N com duas respostas (D/A) | 5 |
 | gabarito | justificativas da seção 'TIPO N PERFIL II: ANALISTA TÉCNICO II – EDUCAÇÃO' ambíguas entre N provas | 4 |
 | gabarito | justificativas da seção 'TIPO N PERFIL N: ANALISTA TÉCNICO II – AUDITORIA INTERNA' ambíguas entre N provas | 4 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODAS AS OPÇÕES DO CARGO DE PESQUISADOR / OPÇÃO N: PESQUISADOR – ÁREA: CIÊNCIAS BIOLÓGICA | 4 |
@@ -113,9 +102,9 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: NEURO | 3 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR / CARGO N: MÉDICO – ESPECIALIDADE: MEDIC | 3 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS BÁSICOS PARA OS CARGOS DE PERITO CRIMINAL FEDERAL (TODAS AS ÁREAS) / CARGO N: PERITO CRIMINA | 3 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS SOMENTE PARA OS CARGOS N E N / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIALIZADO – ESPE | 3 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA TODAS AS OPÇÕES DO CARGO DE PESQUISADOR / CN - CONHECIMENTOS COMPLEMENTARES PARA A OPÇÃO  | 3 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS DE N A N / CARGO N' sem prova correspondente | 3 |
-| gabarito | item N com duas respostas (D/C) | 3 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS DE NÍVEL SUPERIOR' sem prova correspondente | 2 |
 | gabarito | justificativas da seção 'HABILITAÇÃO N: LIBRAS' sem prova correspondente | 2 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS SOMENTE PARA O CARGO N / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIALIZADO – ESPECIALI | 2 |
@@ -128,7 +117,7 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N: FISIOTERAPEUTA – ÁREA: TERAPIA INTE | 2 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS BÁSICOS PARA O CARGO DE MONITOR DE GESTÃO EDUCACIONAL / CARGO N – ANALISTA DE GESTÃO EDUCAC | 2 |
 | gabarito | justificativas da seção 'PROVA DE CONHECIMENTOS GERAIS PARA O CARGO N' sem prova correspondente | 2 |
-| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS SOMENTE PARA OS CARGOS N E N / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIALIZADO – ESPE | 2 |
+| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: TÉCNICO DE SISTEMAS DE SANEAMENTO – ESPECIALIDADE: TÉCNICO | 2 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS – BLOCO II – PARA OS CARGOS N, N E N / CARGO N: PERITO CRIMINAL FEDERAL – ÁREA N: ENGENHARIA  | 2 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: ESPECIALISTA EM GESTÃO DE TELECOMUNICAÇÕES – ANALISTA SUPERIO | 2 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: AUDITOR FISCAL DA RECEITA ESTADUAL' sem prova correspondente | 2 |
@@ -140,8 +129,6 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CN - CONHECIMENTOS COMPLEMENTARES PARA A OPÇÃO N' ambíguas entre N provas | 2 |
 | gabarito | justificativas da seção 'BLOCO II / PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ASSISTENTE DE PROJETO – PERFIL N – UMA' ambíguas entre N p | 2 |
 | gabarito | justificativas da seção 'BLOCO II / PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ASSISTENTE DE PROJETO – UGP' ambíguas entre N provas | 2 |
-| gabarito | item N com duas respostas (X/C) | 2 |
-| gabarito | item N com duas respostas (A/D) | 2 |
 | gabarito | tabela não confiável: N itens com respostas conflitantes; descartada | 1 |
 | gabarito | justificativas da seção 'Área Profissional: Saúde Coletiva – Programa: Multiprofissional em Atenção Básica' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'Área Profissional: Enfermagem – Programas: Multiprofissional em Atenção Básica e Atenção Cardíaca' sem prova corres | 1 |
@@ -268,7 +255,6 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'OPÇÃO N: ANALISTA – ÁREA: LABORATÓRIOS E CAMPOS EXPERIMENTAIS – SUBÁREA: APOIO A CAMPO EXPERIMENTAL' ambíguas entre | 1 |
 | gabarito | justificativas da seção 'OPÇÃO N: ANALISTA – ÁREA: LABORATÓRIOS E CAMPOS EXPERIMENTAIS – SUBÁREA: CULTURA DE TECIDOS' ambíguas entre N prova | 1 |
 | gabarito | justificativas da seção 'OPÇÃO N: ANALISTA – ÁREA: GESTÃO DE PESSOAS – SUBÁREA: SAÚDE OCUPACIONAL' ambíguas entre N provas | 1 |
-| gabarito | justificativas da seção 'LÍNGUA FRANCESA' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'FUNÇÃO N: JUIZ LEIGO' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'FUNÇÃO N: CONCILIADOR' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'ESTÁGIO REMUNERADO DE PÓS-GRADUAÇÃO EM DIREITO' sem prova correspondente | 1 |
@@ -372,7 +358,6 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N AO N / CARGO N: PROFESSOR DE EDUCAÇÃO BÁSICA – PEB C – ARTE' ambíguas entre N | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N AO N / CARGO N: PROFESSOR DE EDUCAÇÃO BÁSICA – PEB B' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: AGENTE DE SUPORTE AO NEGÓCIO – ESPECIALIDADE: ASSISTENTE A | 1 |
-| gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: TÉCNICO DE SISTEMAS DE SANEAMENTO – ESPECIALIDADE: TÉCNICO | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: ANALISTA DE SUPORTE AO NEGÓCIO – ESPECIALIDADE: CONTADOR'  | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: ANALISTA DE SUPORTE AO NEGÓCIO – ESPECIALIDADE: ANALISTA D | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS GERAIS PARA OS CARGOS N A N E N / CARGO N: ANALISTA DE SUPORTE AO NEGÓCIO – ESPECIALIDADE: ADMINISTRA | 1 |
@@ -455,7 +440,6 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO N / CARGO N: TÉCNICO DE TECNOLOGIA DA INFORMAÇÃO' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO N / CARGO N: ENGENHEIRO AGRÔNOMO' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO N E PARA OS CARGOS DE N A N' ambíguas entre N provas | 1 |
-| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO N E PARA OS CARGOS DE N A N / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: JUDICIÁRIA' s | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA O CARGO N E PARA OS CARGOS DE N A N / CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIA | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICO PARA TODOS AS ÊNFASES / ÊNFASE N: SUPRIMENTO DE BENS E SERVIÇOS – ADMINISTRAÇÃO' ambíguas entr | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICO PARA TODOS AS ÊNFASES / ÊNFASE N: PROJETOS, CONSTRUÇÃO E MONTAGEM – MECÂNICA' ambíguas entre N | 1 |
@@ -490,6 +474,7 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'CARGO N: ESCRIVÃO DE POLÍCIA' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CARGO N: DELEGADO DE POLÍCIA CIVIL' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – ÁREA: APOIO ESPECIALIZADO – ESPECIALIDADE: ANÁLISE DE SISTEMAS' sem prova correspond | 1 |
+| gabarito | justificativas da seção 'CARGO N: ANALISTA JUDICIÁRIO – ESPECIALIDADE: ANÁLISE DE SISTEMAS' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CARGO N: TÉCNICO BANCÁRIO I' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CARGO N: TÉCNICO ADMINISTRATIVO' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CARGO N: SOLDADO COMBATENTE' sem prova correspondente | 1 |
@@ -527,19 +512,15 @@ Lista completa em `data/pendencias.csv`.
 | gabarito | justificativas da seção 'BLOCO II / PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ASSISTENTE DE PROJETO – PERFIL N – USI' ambíguas entre N p | 1 |
 | gabarito | justificativas da seção 'BLOCO II / PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ASSISTENTE DE PROJETO – PERFIL N – UDIGIS' ambíguas entre  | 1 |
 | gabarito | justificativas da seção 'BLOCO I - CBN / PROVA DE CONHECIMENTOS BÁSICOS PARA OS CARGOS DE NÍVEL MÉDIO' sem prova correspondente | 1 |
-| gabarito | item N com duas respostas (X/E) | 1 |
-| gabarito | item N com duas respostas (E/X) | 1 |
-| gabarito | item N com duas respostas (C/X) | 1 |
-| gabarito | fase no PDF (definitivo) difere da classificação (preliminar) | 1 |
-| validacao | N questão(ões) sem gabarito: […] | 197 |
-| validacao | nº de itens extraídos (N) difere do gabarito (N) | 132 |
-| validacao | prova sem gabarito vinculado | 112 |
+| validacao | N questão(ões) sem gabarito: […] | 213 |
+| validacao | nº de itens extraídos (N) difere do gabarito (N) | 176 |
+| validacao | prova sem gabarito vinculado | 113 |
 
 ## Observações de método
 
 - Nada é estimado: resposta, ano ou texto que não pôde ser lido fica NULL e gera pendência.
 - `alterada=1` só quando há evidência (preliminar e definitivo publicados, ou tabela de justificativas). O site costuma retirar o gabarito preliminar após o definitivo, então a ausência de alteração não é prova de que o item não mudou.
-- Itens com respostas diferentes na mesma tabela (ex.: opções de língua estrangeira) ficam sem resposta.
+- Itens de opção de língua estrangeira (ex.: itens 1–10 em espanhol e em inglês) são guardados por língua (`questao.variante`, `gabarito_bruto.variante`): na prova pelo título 'LÍNGUA X' de cada bloco e no gabarito pela cor da célula e a legenda. Conflitos que a legenda não resolve ficam sem resposta.
 - Versões de acessibilidade (adaptada, superampliada, ledor, braile, VLibras) foram ignoradas.
 - Números de itens ofuscados (substituição de glifos, comum em 2015–2017) são decodificados pela restrição de sequência consecutiva.
 
