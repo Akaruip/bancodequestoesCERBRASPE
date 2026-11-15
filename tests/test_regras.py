@@ -118,6 +118,18 @@ def test_segmentacao():
     assert len(_agrupa_linhas(ws)) == 3
 
 
+def test_justificativas_identificadores():
+    from cebraspe_bank.extract import _ids_secao, _mesmas_questoes
+    assert _ids_secao("CARGO 8: MÉDICO – ESPECIALIDADE: DERMATOLOGISTA") == {("CARGO", "8")}
+    assert _ids_secao("OPÇÃO 40002042: ANALISTA – ÁREA: CIÊNCIA") == {("OPCAO", "40002042")}
+    assert _ids_secao("PROVA DE CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS DE ANALISTA, EXCETO PARA O CARGO 4") == set()
+    assert _ids_secao("PROVA OBJETIVA - CARGO 10") != _ids_secao("PROVA OBJETIVA - CARGO 1")
+    ls = [{"numero": 3}]
+    m1, m2, m3 = {("", 3): (1, "C", "C")}, {("", 3): (2, "C", "C")}, {("", 3): (3, "C", "C")}
+    enunc = {1: "O texto apresenta um roteiro.", 2: "O texto apresenta um roteiro.", 3: "A Lei 8.112 prevê..."}
+    assert _mesmas_questoes(ls, [m1, m2], "", enunc) and not _mesmas_questoes(ls, [m1, m3], "", enunc)
+
+
 def test_ocr_gabarito():
     from cebraspe_bank.extract.gabarito import _letra, _numera_por_posicao
     assert _letra("Cc", ocr=True) == "C" and _letra("XxX", ocr=True) == "X" and _letra("[o", ocr=True) is None

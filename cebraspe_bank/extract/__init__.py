@@ -1,6 +1,7 @@
 """Fases 3 e 4 — extração de questões e gabaritos, vínculo e validação por prova."""
 from __future__ import annotations
 
+import difflib
 import json
 import logging
 import re
@@ -579,12 +580,20 @@ def _aplica_justificativas(con, concurso_id: int) -> None:
                          "WHERE d.concurso_id=? ORDER BY j.documento_id, j.ordem", (concurso_id,)).fetchall()
     if not linhas:
         return
-    defin = {}
+    # recalculadas a cada vínculo (as embutidas nas provas, com fonte no próprio caderno, ficam)
+    con.execute("UPDATE gabarito SET justificativa=NULL, fonte_justificativa=NULL WHERE fonte_justificativa IN "
+                "(SELECT id FROM documento WHERE concurso_id=? AND tipo='justificativa')", (concurso_id,))
+    defin, enunc = {}, {}
     for r in con.execute(
-            "SELECT q.prova_id, q.numero, q.id, g.resposta_definitiva, g.resposta_preliminar, q.variante FROM questao q "
-            "JOIN prova p ON p.id=q.prova_id LEFT JOIN gabarito g ON g.questao_id=q.id "
+            "SELECT q.prova_id, q.numero, q.id, g.resposta_definitiva, g.resposta_preliminar, q.variante, q.enunciado "
+            "FROM questao q JOIN prova p ON p.id=q.prova_id LEFT JOIN gabarito g ON g.questao_id=q.id "
             "WHERE p.concurso_id=? AND q.tipo<>'DISC'", (concurso_id,)):
         defin.setdefault(r[0], {})[(r[5], r[1])] = (r[2], r[3], r[4])
+        enunc[r[2]] = r[6] or ""
+    ids_prova = {r[0]: _ids_secao(f"{r[1] or ''} {r[2] or ''}") |
+                 {("CARGO", str(n)) for n in _num_cargos(f"{r[1] or ''} {r[2] or ''}")} for r in con.execute(
+        "SELECT p.id, d.descricao, p.cargo FROM prova p JOIN documento d ON d.id=p.documento_id WHERE p.concurso_id=?",
+        (concurso_id,))}
     secoes: dict[tuple, list] = {}
     for l in linhas:
         secoes.setdefault((l["documento_id"], l["secao"]), []).append(l)
@@ -606,8 +615,19 @@ def _aplica_justificativas(con, concurso_id: int) -> None:
             db.pendencia(con, "gabarito", f"justificativas da seção '{secao}' sem prova correspondente",
                          concurso_id, doc_id)
             continue
+        # identificador do último segmento da seção ("... / CARGO 8: MÉDICO", "OPÇÃO 40002042: ANALISTA") restringe
+        # as provas antes do desempate pelas respostas (seções de 1-3 linhas casam por acaso com várias provas)
+        ids_sec = _ids_secao((secao or "").split(" / ")[-1])
+        if ids_sec:
+            com_id = [(o, pid) for o, pid in placar if ids_sec <= ids_prova.get(pid, set())]
+            if com_id:
+                placar = com_id
         topo = max(o for o, _ in placar)
         alvos = [pid for o, pid in placar if o == topo]
+        if len(alvos) > 1 and _mesmas_questoes(ls, [defin[p] for p in alvos], var, enunc):
+            for pid in alvos:                          # mesmo caderno em vários PDFs (ex.: básicos por cargo)
+                _grava_just(con, ls, defin[pid], doc_id, var)
+            continue
         especificas = {t for t in re.findall(r"[A-Z0-9]+", norm(secao or "")) if t not in genericas and not t.isdigit()}
         nums_cargo = set(re.findall(r"CARGO\s+(\d+)", norm(secao or "")))
         if len(alvos) > 1 and (especificas or nums_cargo):
@@ -620,6 +640,29 @@ def _aplica_justificativas(con, concurso_id: int) -> None:
             continue
         for melhor in alvos:
             _grava_just(con, ls, defin[melhor], doc_id, var)
+
+
+def _ids_secao(t: str) -> set[tuple[str, str]]:
+    """Identificadores numéricos de cargo/opção/perfil/área/atividade num título ('CARGO 8: MÉDICO' -> CARGO 8)."""
+    t = norm(t).split("EXCETO")[0]                # "TODOS OS CARGOS, EXCETO PARA O CARGO 4" não identifica o cargo 4
+    out = {("CARGO", n.lstrip("0") or "0") for n in re.findall(r"\bCARGO\s+(\d{1,3})\b", t)}
+    out |= {("OPCAO", n) for n in re.findall(r"\bOPCAO\s+(\d{5,})\b", t)}
+    for k in ("PERFIL", "AREA", "ATIVIDADE", "ESPECIALIDADE", "EMPREGO", "FUNCAO", "ENFASE"):
+        out |= {(k, n.lstrip("0") or "0") for n in re.findall(rf"\b{k}\s+(\d{{1,3}})\b", t)}
+    return out
+
+
+def _mesmas_questoes(ls, mapas: list[dict], var: str, enunc: dict) -> bool:
+    """As provas empatadas têm o mesmo enunciado em todos os itens da seção (mesmo caderno em PDFs diferentes)."""
+    comparou = False
+    for l in ls:
+        textos = [norm(enunc.get(q[0], ""))[:300] for m in mapas if (q := _chave_just(m, var, l["numero"]))]
+        if len(textos) < len(mapas) or not textos[0]:
+            return False
+        if any(difflib.SequenceMatcher(None, textos[0], t).ratio() < 0.9 for t in textos[1:]):
+            return False
+        comparou = True
+    return comparou
 
 
 def _chave_just(mapa: dict, var: str, numero: int):
