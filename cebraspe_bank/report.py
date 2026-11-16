@@ -31,6 +31,12 @@ def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
                            f"ON c.id=p.concurso_id WHERE 1=1{fq} GROUP BY 1 ORDER BY 2 DESC", fa).fetchall()
     n_obj = um(f"SELECT COUNT(*) FROM questao q JOIN prova p ON p.id=q.prova_id JOIN concurso c ON c.id=p.concurso_id "
                f"WHERE q.tipo<>'DISC'{fq}")
+    # provas cujas questões com resposta têm só o gabarito preliminar (definitivo não publicado ou não vinculado)
+    so_pre = con.execute(f"""SELECT COUNT(*), COALESCE(SUM(n), 0) FROM (SELECT p.id, COUNT(*) n FROM questao q
+                         JOIN prova p ON p.id=q.prova_id JOIN concurso c ON c.id=p.concurso_id
+                         JOIN gabarito g ON g.questao_id=q.id WHERE q.tipo<>'DISC'
+                         AND (g.resposta_definitiva IS NOT NULL OR g.resposta_preliminar IS NOT NULL){fq}
+                         GROUP BY p.id HAVING SUM(g.resposta_definitiva IS NOT NULL)=0)""", fa).fetchone()
     sem_gab = um(f"""SELECT COUNT(*) FROM questao q JOIN prova p ON p.id=q.prova_id JOIN concurso c ON c.id=p.concurso_id
                      LEFT JOIN gabarito g ON g.questao_id=q.id WHERE q.tipo<>'DISC'
                      AND (g.id IS NULL OR (g.resposta_definitiva IS NULL AND g.resposta_preliminar IS NULL)){fq}""")
@@ -88,6 +94,9 @@ def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
           "\n## Gabaritos\n",
           f"Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **{sem_gab}** "
           f"({100.0 * sem_gab / max(1, n_obj):.1f}% de {n_obj}). Cada caso tem pendência com o motivo.\n",
+          f"\nProvas com **somente o gabarito preliminar** (definitivo não publicado ou não vinculado): **{so_pre[0]}** "
+          f"({so_pre[1]} questões). Nelas `resposta_definitiva` fica vazia e a resposta está em `resposta_preliminar`; "
+          f"cada prova tem a pendência de validação correspondente.\n",
           _tab(["Com definitivo", "Com preliminar", "Anuladas", "Alteradas", "Com justificativa", "Com padrão de resposta"],
                [tuple(v or 0 for v in gab)]),
           "\n## Concursos e questões por ano\n",

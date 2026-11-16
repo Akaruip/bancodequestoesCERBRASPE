@@ -4,7 +4,10 @@ from __future__ import annotations
 import collections
 import logging
 import re
+import shutil
 import statistics
+import subprocess
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -71,6 +74,79 @@ def _lixo(t: str) -> bool:
                     and not re.search(r"[aeiouáéíóú]{1}[a-z]{2,}", s)):
         return True
     return False
+
+
+_TESSERACT: str | None = None
+
+
+def _tesseract() -> str | None:
+    global _TESSERACT
+    if _TESSERACT is None:
+        cand = shutil.which("tesseract") or r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        _TESSERACT = cand if Path(cand).exists() else ""
+    return _TESSERACT or None
+
+
+def ocr_recorte(page, rect, whitelist: str, psm: int = 8, dpi: int = 400) -> str | None:
+    """OCR de um recorte pequeno da página (célula, número de item) restrito a `whitelist`, com o executável do
+    Tesseract (o OCR de página inteira perde caracteres isolados e números em negrito encostados em fios)."""
+    exe = _tesseract()
+    if not exe:
+        return None
+    pix = page.get_pixmap(dpi=dpi, clip=rect, colorspace=pymupdf.csGRAY)
+    with tempfile.TemporaryDirectory() as tmp:
+        img = Path(tmp) / "c.png"
+        pix.save(img)
+        try:
+            return subprocess.run([exe, str(img), "stdout", "--psm", str(psm), "-c",
+                                   f"tessedit_char_whitelist={whitelist}"],
+                                  capture_output=True, text=True, timeout=30).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            return None
+
+
+def _eh_capa_instrucoes(texto: str) -> bool:
+    """Capa do caderno: instruções ao candidato ('Ao receber este caderno...', 'aplicador de provas'), sem itens."""
+    t = texto.upper()
+    sinais = sum(bool(re.search(p, t)) for p in (r"AO RECEBER ESTE CADERNO", r"INSTRU[ÇC][ÕO]ES", r"APLICADOR",
+                                                 r"FOLHA DE RESPOSTAS", r"DURA[ÇC][ÃA]O DA[S]? PROVA"))
+    return sinais >= 3 and not re.search(r"JULGUE OS (ITENS|PR[ÓO]XIMOS)|ASSINALE A OP[ÇC][ÃA]O", t)
+
+
+def _tira_fio(w):
+    """'|Com' -> 'Com' com a caixa encolhida na proporção dos caracteres (fio do scan colado à palavra)."""
+    t = w[4]
+    ini = len(t) - len(t.lstrip("|¦"))
+    fim = len(t) - len(t.rstrip("|¦"))
+    if not (ini or fim) or ini + fim >= len(t):
+        return w
+    larg = (w[2] - w[0]) / len(t)
+    return (w[0] + ini * larg, w[1], w[2] - fim * larg, w[3], t[ini:len(t) - fim], *w[5:])
+
+
+def _corrige_numeros_ocr(page, partes_por_linha: list) -> None:
+    """Páginas OCR: a primeira palavra curta de uma linha recuada à esquerda da margem da coluna é o número do item
+    (negrito, às vezes encostado num fio do scan) e sai como '&', 'É', 'g', '7º'. Refaz o OCR só desse recorte,
+    aceitando apenas dígitos. Altera as listas de palavras no lugar."""
+    xs = collections.defaultdict(list)
+    for partes in partes_por_linha:
+        for col, ws in partes:
+            xs[col].append(round(ws[0][0]))
+    margem = {col: collections.Counter(v).most_common(1)[0][0] for col, v in xs.items() if v}
+    for partes in partes_por_linha:
+        for col, ws in partes:
+            w = ws[0]
+            m = re.fullmatch(r"(\d{1,3})[º°.,]", w[4])
+            if m and col in margem and w[0] <= margem[col] - 8:
+                ws[0] = (w[0], w[1], w[2], w[3], m.group(1), *w[5:])     # '7º' -> '7'
+                continue
+            if col not in margem or w[0] > margem[col] - 8 or margem[col] - w[0] > 60 or len(w[4]) > 3 \
+                    or re.fullmatch(r"\d{1,3}", w[4]) or len(ws) < 3:
+                continue
+            r = pymupdf.Rect(w[0] - 2, w[1] - 2, w[2] + 2, w[3] + 2)
+            dig = re.sub(r"\D", "", ocr_recorte(page, r, "0123456789") or "")
+            if 1 <= len(dig) <= 3:
+                ws[0] = (w[0], w[1], w[2], w[3], dig, *w[5:])
 
 
 def _palavras_pagina(page, ocr: bool):
@@ -229,11 +305,18 @@ def ler(caminho: Path | str, forcar_ocr: bool = False, cabecalho_y: float = HEAD
         if ocr:
             try:
                 words = _palavras_pagina(page, True)
+                if pno == 0 and pular_capa_sem_texto and _eh_capa_instrucoes(" ".join(w[4] for w in words)):
+                    # caderno todo escaneado: a capa (instruções numeradas 1, 2, 3...) não é conteúdo
+                    doc.paginas_sem_texto.append(pno)
+                    continue
                 doc.paginas_ocr.append(pno)
             except Exception as e:  # noqa: BLE001
                 log.warning("OCR falhou em %s p.%d: %s", caminho.name, pno + 1, e)
         origem = "ocr" if ocr else "pdf"
         spans = [] if ocr else _spans(page)
+        if ocr:
+            words = [w for w in words if not re.fullmatch(r"[|¦]{1,2}", w[4])]   # fio vertical do scan
+            words = [_tira_fio(w) for w in words]
         # marcas de controle em fonte minúscula (ex.: <AGEPAR233001A01E2048>) não são conteúdo
         words = [w for w in words if not ((w[3] - w[1]) < 5.0 and re.fullmatch(r"<[^>]*>?|<?[^<>]*>", w[4]))]
         fis = _agrupa_linhas(words)
@@ -270,8 +353,11 @@ def ler(caminho: Path | str, forcar_ocr: bool = False, cabecalho_y: float = HEAD
                 meio = div_doc
         duas = colunas and _detecta_duas_colunas(corpo, meio)
         segs: list[Linha] = []
-        for lw in corpo:
-            partes = _quebra_por_gutter(lw, meio) if duas else [(-1, lw)]
+        partes_por_linha = [[(c, list(ws)) for c, ws in (_quebra_por_gutter(lw, meio, gap_min=1.0 if ocr else 6.0) if duas else [(-1, lw)])]
+                            for lw in corpo]
+        if ocr and colunas:
+            _corrige_numeros_ocr(page, partes_por_linha)
+        for partes in partes_por_linha:
             for col, ws in partes:
                 t = _texto(ws)
                 if not t or _lixo(t):

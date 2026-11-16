@@ -124,6 +124,12 @@ def test_justificativas_identificadores():
     assert _ids_secao("OPÇÃO 40002042: ANALISTA – ÁREA: CIÊNCIA") == {("OPCAO", "40002042")}
     assert _ids_secao("PROVA DE CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS DE ANALISTA, EXCETO PARA O CARGO 4") == set()
     assert _ids_secao("PROVA OBJETIVA - CARGO 10") != _ids_secao("PROVA OBJETIVA - CARGO 1")
+    # listas no plural: a seção casa com a prova da mesma lista, não com a de um emprego só
+    sec = _ids_secao("CONHECIMENTOS BÁSICOS PARA OS EMPREGOS 2 E 5 A 8")
+    assert sec == {("EMPREGO", str(n)) for n in (2, 5, 6, 7, 8)}
+    assert sec <= _ids_secao("PROVA OBJETIVA – CONHECIMENTOS BÁSICOS – EMPREGOS 2 E 5 A 8")
+    assert not sec <= _ids_secao("PROVA OBJETIVA – CONHECIMENTOS ESPECÍFICOS – EMPREGO 2")
+    assert _ids_secao("PARA OS CARGOS 15, 16 E 17") == {("CARGO", "15"), ("CARGO", "16"), ("CARGO", "17")}
     ls = [{"numero": 3}]
     m1, m2, m3 = {("", 3): (1, "C", "C")}, {("", 3): (2, "C", "C")}, {("", 3): (3, "C", "C")}
     enunc = {1: "O texto apresenta um roteiro.", 2: "O texto apresenta um roteiro.", 3: "A Lei 8.112 prevê..."}

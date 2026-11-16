@@ -275,7 +275,7 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
     if not formato_me:
         for i, l in enumerate(linhas):
             p = l.palavras
-            if not p or not na_margem(l):
+            if not p or not na_margem(l, 6.0 if l.origem == "ocr" else 3.5):
                 continue
             t0 = p[0]
             if len(p) == 1 and not ((i + 1 < len(linhas) and linhas[i + 1].x0 > l.x0 + 5)
@@ -314,6 +314,7 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
                     cifra = "".join(f"{d}={c}" for c, d in sorted(mapa.items(), key=lambda kv: kv[1]))
         if cifra is not None:
             avisos.append(f"números dos itens ofuscados; substituição de glifos decodificada ({cifra})")
+        numerados = _preenche_lacunas(numerados, linhas, na_margem, avisos)
     inicio_item = {i: (n, t) for i, n, t in numerados}
 
     itens: list[Item] = []
@@ -457,6 +458,31 @@ def segmentar(doc: Documento, modalidade: str | None = None, esperados: set[int]
     return ResultadoProva(itens, blocos, tipo, cifra, avisos)
 
 
+# token que o OCR produz no lugar de um número de item em negrito: dígitos com troca de glifo ('217', '27', 'g', '&')
+_NUM_OCR = re.compile(r"^[\dOoIlSsgB&É§]{1,3}[º°.]?$")
+
+
+def _preenche_lacunas(numerados: list[tuple[int, int, str]], linhas: list[Linha], na_margem, avisos: list[str]
+                      ) -> list[tuple[int, int, str]]:
+    """Cadeia que pula exatamente um número (n-1 -> n+1) com UMA única linha na margem, entre as duas, começando por
+    um token curto com cara de número (número mal lido pelo OCR: '217' no lugar de 27, 'g' no lugar de 8): essa
+    linha é o item n. Só em linhas de OCR."""
+    out = list(numerados)
+    novos = []
+    for (ia, a, _), (ib, b, _) in zip(numerados, numerados[1:]):
+        if b != a + 2:
+            continue
+        cands = [i for i in range(ia + 1, ib) if linhas[i].origem == "ocr" and na_margem(linhas[i], 8)
+                 and linhas[i].palavras and _NUM_OCR.match(linhas[i].palavras[0])
+                 and len(linhas[i].palavras) >= 3]
+        if len(cands) == 1:
+            novos.append((cands[0], a + 1, linhas[cands[0]].palavras[0]))
+    if novos:
+        avisos.append("itens " + ", ".join(f"{n} ('{t}')" for _, n, t in novos) +
+                      " identificados pela lacuna na sequência (número ilegível no OCR)")
+    return sorted(out + novos)
+
+
 def _corrige_numero_isolado(itens: list[Item], avisos: list[str]) -> None:
     """'Questão 344' entre a 33 e a 35 (erro de digitação no próprio PDF): vira 34 se a 34 não existe."""
     existentes = {(it.variante, it.numero) for it in itens}
@@ -542,12 +568,16 @@ def _cadeia(nums: list[tuple[int, int, str]], esperados: set[int] | None, salto_
     prev: list[int | None] = [None] * n
     ult: dict[int, int] = {}          # número -> índice com melhor cadeia terminando nele
     for j, (_, v, _) in enumerate(nums):
+        # melhor antecessor entre os saltos possíveis (não o primeiro: um número mal lido logo antes, ex. '27' no
+        # lugar de '21', não pode cortar a cadeia verdadeira 1..26 -> 28); salto menor desempata
+        melhor = None
         for d in range(1, salto_max + 1):
             k = ult.get(v - d)
-            if k is not None and best[k] + 1 - (d - 1) * 0.01 > best[j]:
-                best[j] = best[k] + 1
-                prev[j] = k
-                break
+            if k is not None and (melhor is None or best[k] - (d - 1) * 0.01 > best[melhor[0]] - (melhor[1] - 1) * 0.01):
+                melhor = (k, d)
+        if melhor is not None and best[melhor[0]] + 1 > best[j]:
+            best[j] = best[melhor[0]] + 1
+            prev[j] = melhor[0]
         if v not in ult or best[j] >= best[ult[v]]:
             ult[v] = j
     j = max(range(n), key=lambda x: best[x])

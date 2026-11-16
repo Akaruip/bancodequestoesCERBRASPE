@@ -1,6 +1,6 @@
 # Relatório final — banco de questões Cebraspe
 
-Gerado em 2026-11-15T15:24:00+00:00 a partir de `cebraspe.db`.
+Gerado em 2026-11-16T22:25:32+00:00 a partir de `cebraspe.db`.
 
 ## Visão geral
 
@@ -11,14 +11,14 @@ Gerado em 2026-11-15T15:24:00+00:00 a partir de `cebraspe.db`.
 | Concursos com provas extraídas | 426 |
 | Documentos baixados | 11152 (2.70 GB) |
 | Provas processadas | 5205 |
-| Provas com extração completa | 5101 (98.0%) |
-| Provas parciais / falhas | 98 / 6 |
+| Provas com extração completa | 5102 (98.0%) |
+| Provas parciais / falhas | 97 / 6 |
 
 ## Questões por tipo
 
 | Tipo | Questões |
 |---|---|
-| CE | 156781 |
+| CE | 156808 |
 | ME | 53204 |
 | DISC | 9514 |
 
@@ -32,11 +32,14 @@ Gerado em 2026-11-15T15:24:00+00:00 a partir de `cebraspe.db`.
 
 ## Gabaritos
 
-Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **210** (0.1% de 209985). Cada caso tem pendência com o motivo.
+Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **200** (0.1% de 210012). Cada caso tem pendência com o motivo.
+
+
+Provas com **somente o gabarito preliminar** (definitivo não publicado ou não vinculado): **130** (8839 questões). Nelas `resposta_definitiva` fica vazia e a resposta está em `resposta_preliminar`; cada prova tem a pendência de validação correspondente.
 
 | Com definitivo | Com preliminar | Anuladas | Alteradas | Com justificativa | Com padrão de resposta |
 |---|---|---|---|---|---|
-| 200923 | 24586 | 6124 | 1680 | 14424 | 6129 |
+| 200973 | 24608 | 6127 | 1675 | 14446 | 6129 |
 
 ## Concursos e questões por ano
 
@@ -49,7 +52,7 @@ Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **210** (0.1% de 2
 | 2017 | 31 | 252 | 12814 |
 | 2018 | 37 | 445 | 21462 |
 | 2019 | 24 | 184 | 11005 |
-| 2020 | 28 | 285 | 14414 |
+| 2020 | 28 | 285 | 14441 |
 | 2021 | 59 | 486 | 21598 |
 | 2022 | 52 | 438 | 17891 |
 | 2023 | 57 | 718 | 27983 |
@@ -117,7 +120,6 @@ Lista completa em `data\pendencias.csv`.
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO - PROVA DE VERIFICAÇÃO DE APRENDIZAGEM - CURSO DE FORMAÇÃO P | GAB | 2 |
 | gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N' ambíguas entre N provas | 2 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS – BLOCO II – PARA OS CARGOS N, N E N / CARGO N: PERITO CRIMINAL FEDERAL – ÁREA N: ENGENHARIA  | 2 |
-| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS EMPREGOS N E N' ambíguas entre N provas | 2 |
 | gabarito | justificativas da seção 'BLOCO II / PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ASSISTENTE DE PROJETO – PERFIL N – UMA' ambíguas entre N p | 2 |
 | gabarito | justificativas da seção 'Área Profissional: Saúde Coletiva – Programa: Multiprofissional em Atenção Básica' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'Área Profissional: Enfermagem – Programas: Multiprofissional em Atenção Básica e Atenção Cardíaca' sem prova corres | 1 |
@@ -184,7 +186,6 @@ Lista completa em `data\pendencias.csv`.
 | gabarito | justificativas da seção 'CONHECIMENTOS COMPLEMENTARES PARA OS CARGOS N, N E N / CARGO N: PESQUISADOR EM PROPRIEDADE INDUSTRIAL – ÁREA DE CON | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS – BLOCO II – PARA OS CARGOS N, N E N / CARGO N: PERITO CRIMINAL FEDERAL – ÁREA N: INFORMÁTICA | 1 |
 | gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA TODOS OS CARGOS / CARGO N: ESPECIALISTA EM REGULAÇÃO DE AVIAÇÃO CIVIL – ÁREA N' ambíguas | 1 |
-| gabarito | justificativas da seção 'CONHECIMENTOS BÁSICOS PARA OS EMPREGOS N E N A N' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGOS DE ESPECIALISTA EM REGULAÇÃO E VIGILÂNCIA SANITÁRIA' sem prova correspondente | 1 |
 | gabarito | justificativas da seção 'CARGO: NEONATOLOGIA – ITENS N E N' ambíguas entre N provas | 1 |
 | gabarito | justificativas da seção 'CARGO: ESPECIALISTA EM REGULAÇÃO E VIGILÂNCIA SANITÁRIA – ÁREA N' sem prova correspondente | 1 |
@@ -225,9 +226,10 @@ Lista completa em `data\pendencias.csv`.
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO - CONHECIMENTOS ESPECÍFICOS - CARGO N | 1 |
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO - CONHECIMENTOS ESPECÍFICOS - CARGO N | GABARITO DEFINITIVO - CONH | 1 |
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO - CONHECIMENTOS ESPECÍFICOS - ATIVIDADE N | GABARITO DEFINITIVO -  | 1 |
+| validacao | somente gabarito preliminar (definitivo não publicado ou não vinculado) | 130 |
 | validacao | prova sem gabarito vinculado | 91 |
-| validacao | nº de itens extraídos (N) difere do gabarito (N) | 7 |
-| validacao | N questão(ões) sem gabarito: […] | 2 |
+| validacao | nº de itens extraídos (N) difere do gabarito (N) | 6 |
+| validacao | N questão(ões) sem gabarito: […] | 1 |
 
 ## Observações de método
 

@@ -649,6 +649,29 @@ def _ids_secao(t: str) -> set[tuple[str, str]]:
     out |= {("OPCAO", n) for n in re.findall(r"\bOPCAO\s+(\d{5,})\b", t)}
     for k in ("PERFIL", "AREA", "ATIVIDADE", "ESPECIALIDADE", "EMPREGO", "FUNCAO", "ENFASE"):
         out |= {(k, n.lstrip("0") or "0") for n in re.findall(rf"\b{k}\s+(\d{{1,3}})\b", t)}
+    # listas no plural: "EMPREGOS 3 E 4", "EMPREGOS 2 E 5 A 8", "CARGOS 15, 16 E 17", "CARGOS DE 4 A 31"
+    plurais = {"CARGOS": "CARGO", "EMPREGOS": "EMPREGO", "PERFIS": "PERFIL", "AREAS": "AREA", "ENFASES": "ENFASE",
+               "ATIVIDADES": "ATIVIDADE", "FUNCOES": "FUNCAO", "ESPECIALIDADES": "ESPECIALIDADE"}
+    for m in re.finditer(rf"\b({'|'.join(plurais)})\s+(?:DE\s+)?(\d{{1,3}}(?:\s*(?:,|\bE\b|\bAO?\b)\s*\d{{1,3}})+)", t):
+        out |= {(plurais[m.group(1)], str(n)) for n in _expande_lista(m.group(2))}
+    return out
+
+
+def _expande_lista(s: str) -> list[int]:
+    """'2 E 5 A 8' -> [2, 5, 6, 7, 8]; '15, 16 E 17' -> [15, 16, 17]. Faixas absurdas (> 300 itens) são ignoradas."""
+    toks = re.findall(r"\d+|\bAO?\b", s)
+    out: list[int] = []
+    i = 0
+    while i < len(toks):
+        if toks[i].isdigit():
+            if i + 2 < len(toks) and toks[i + 1] in ("A", "AO") and toks[i + 2].isdigit():
+                a, b = int(toks[i]), int(toks[i + 2])
+                if a <= b <= a + 300:
+                    out += range(a, b + 1)
+                i += 3
+                continue
+            out.append(int(toks[i]))
+        i += 1
     return out
 
 
@@ -759,6 +782,11 @@ def validar_provas(con, concurso_id: int) -> None:
                          p["concurso_id"], p["documento_id"])
         if sem and status == "completa":
             status = "parcial"
+        com_resp = [q for q in obj if q["resposta_definitiva"] is not None or q["resposta_preliminar"] is not None]
+        if com_resp and all(q["resposta_definitiva"] is None for q in com_resp):
+            # só o preliminar: as respostas valem como preliminares, não como gabarito definitivo
+            db.pendencia(con, "validacao", "somente gabarito preliminar (definitivo não publicado ou não vinculado)",
+                         p["concurso_id"], p["documento_id"])
         if sem:
             db.pendencia(con, "validacao", f"{len(sem)} questão(ões) sem gabarito: {sem[:15]}",
                          p["concurso_id"], p["documento_id"])

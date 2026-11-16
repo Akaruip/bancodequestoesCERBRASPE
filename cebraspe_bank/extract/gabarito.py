@@ -3,10 +3,7 @@ from __future__ import annotations
 
 import logging
 import re
-import shutil
 import statistics
-import subprocess
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -14,6 +11,7 @@ import pymupdf
 
 from .. import anos
 from ..texto import norm
+from .pdf import ocr_recorte
 
 log = logging.getLogger(__name__)
 
@@ -118,32 +116,9 @@ def _numera_por_posicao(lw, nums, passo: float) -> list[tuple]:
     return out
 
 
-_TESSERACT: str | None = None
-
-
-def _tesseract() -> str | None:
-    global _TESSERACT
-    if _TESSERACT is None:
-        cand = shutil.which("tesseract") or r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-        _TESSERACT = cand if Path(cand).exists() else ""
-    return _TESSERACT or None
-
-
 def _ocr_celula(page, rect) -> str | None:
     """OCR de uma única célula (modo caractere isolado), para letras que o OCR da página perdeu."""
-    exe = _tesseract()
-    if not exe:
-        return None
-    pix = page.get_pixmap(dpi=400, clip=rect, colorspace=pymupdf.csGRAY)
-    with tempfile.TemporaryDirectory() as tmp:
-        img = Path(tmp) / "c.png"
-        pix.save(img)
-        try:
-            out = subprocess.run([exe, str(img), "stdout", "--psm", "10", "-c", "tessedit_char_whitelist=ABCDEX"],
-                                 capture_output=True, text=True, timeout=30).stdout
-        except (OSError, subprocess.SubprocessError):
-            return None
-    s = re.sub(r"[^A-Z]", "", out.upper())
+    s = re.sub(r"[^A-Z]", "", (ocr_recorte(page, rect, "ABCDEX", psm=10) or "").upper())
     return s if len(s) == 1 and s in RESPOSTAS else None
 
 
