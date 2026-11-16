@@ -112,6 +112,8 @@ CREATE TABLE IF NOT EXISTS questao (
     variante          TEXT NOT NULL DEFAULT '',   -- opção de língua estrangeira ('' = item comum)
     tipo              TEXT NOT NULL CHECK (tipo IN ('CE','ME','DISC')),
     texto_base_id     INTEGER REFERENCES texto_base(id),
+    texto_id          INTEGER REFERENCES texto_base(id),  -- texto de apoio (o bloco imediato pode ser só o
+                                                       -- comando que cita o texto: "do texto CB1A1")
     enunciado         TEXT NOT NULL,
     alternativas_json TEXT,
     codigo_item       TEXT,
@@ -209,6 +211,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS questao_fts USING fts5(
 EXTRA = r"""
 CREATE INDEX IF NOT EXISTS ix_prova_chave ON prova(concurso_id, cargo, caderno);
 CREATE INDEX IF NOT EXISTS ix_questao_num ON questao(prova_id, numero, variante);
+CREATE INDEX IF NOT EXISTS ix_questao_texto ON questao(texto_id);
 """
 
 
@@ -236,6 +239,9 @@ def _migra(con) -> None:
         for c in ("data_edital_pdf", "data_aplicacao"):
             if c not in cols("concurso"):
                 con.execute(f"ALTER TABLE concurso ADD COLUMN {c} TEXT")
+    if "questao" in existentes and "variante" in cols("questao") and "texto_id" not in cols("questao"):
+        # coluna nova em tabela com dados: ALTER (o descarte de tabelas derivadas abaixo apagaria as questões)
+        con.execute("ALTER TABLE questao ADD COLUMN texto_id INTEGER REFERENCES texto_base(id)")
     derivadas = {"gabarito_bruto": "variante", "questao": "variante", "gabarito": "padrao_resposta",
                  "texto_base": "tipo", "prova": "avisos", "questao_fts": "questao_id"}
     for t, c in derivadas.items():

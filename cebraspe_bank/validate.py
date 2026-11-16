@@ -67,10 +67,12 @@ def gerar_revisao(con, n: int, seed: int, fq: str = "", fa: list | None = None) 
     for k, qid in enumerate(escolha, 1):
         q = con.execute(
             """SELECT q.*, p.cargo, p.caderno, p.codigo_prova, c.slug, c.ano, d.arquivo_local, d.nome_arquivo, d.url,
-                      t.conteudo AS tb, g.resposta_preliminar, g.resposta_definitiva, g.anulada, g.alterada, g.justificativa,
+                      CASE WHEN tt.id IS NOT NULL AND tt.id<>t.id THEN tt.conteudo || char(10) || char(10) || t.conteudo
+                           ELSE t.conteudo END AS tb, g.resposta_preliminar, g.resposta_definitiva, g.anulada, g.alterada, g.justificativa,
                       g.padrao_resposta
                FROM questao q JOIN prova p ON p.id=q.prova_id JOIN concurso c ON c.id=p.concurso_id
                JOIN documento d ON d.id=p.documento_id LEFT JOIN texto_base t ON t.id=q.texto_base_id
+               LEFT JOIN texto_base tt ON tt.id=q.texto_id
                LEFT JOIN gabarito g ON g.questao_id=q.id WHERE q.id=?""", (qid,)).fetchone()
         pdf = Path(q["arquivo_local"])
         pdf = pdf if pdf.is_absolute() else config.ROOT / pdf

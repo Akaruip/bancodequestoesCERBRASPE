@@ -158,3 +158,26 @@ def test_ocr_gabarito():
     lw = [(0, 0, 30, 10, toks[0])] + [(50 + 25 * i, 0, 60 + 25 * i, 10, t) for i, t in enumerate(toks[1:])]
     nums = [w for w in lw if w[4].isdigit()]                # como em _linha_numeros: 411, 42, 43, 46
     assert [v for _, v in _numera_por_posicao(lw, nums, 25.0)] == [41, 42, 43, 44, 45, 46]
+
+
+def test_texto_de_apoio(tmp_path):
+    """Migração cria questao.texto_id; o comando "do texto CB1A1" aponta para o Texto CB1A1, e um comando que não
+    cita texto fica sem texto de apoio."""
+    from cebraspe_bank import db
+    from cebraspe_bank.extract import resolver_textos
+    con = db.conectar(tmp_path / "t.db")
+    assert "texto_id" in {r[1] for r in con.execute("PRAGMA table_info(questao)")}
+    con.execute("INSERT INTO concurso(id, slug) VALUES (1, 'X_23')")
+    con.execute("INSERT INTO documento(id, concurso_id, tipo, nome_arquivo, url) VALUES (1, 1, 'prova', 'a.pdf', 'u')")
+    con.execute("INSERT INTO prova(id, concurso_id, documento_id) VALUES (1, 1, 1)")
+    blocos = [(1, "texto", "Texto CB1A1 Um texto longo sobre o mundo digital ..."),
+              (2, "comando", "Julgue os itens a seguir, relativos ao texto CB1A1."),
+              (3, "comando", "Acerca da Lei n.º 8.112/1990, julgue os itens a seguir.")]
+    con.executemany("INSERT INTO texto_base(id, prova_id, tipo, conteudo) VALUES (?, 1, ?, ?)", blocos)
+    for qid, tb in ((1, 1), (2, 2), (3, 3)):
+        con.execute("INSERT INTO questao(id, prova_id, numero, tipo, texto_base_id, enunciado) VALUES (?, 1, ?, 'CE', ?, 'e')",
+                    (qid, qid, tb))
+        con.execute("INSERT INTO questao_fts(questao_id, enunciado, texto_base) VALUES (?, 'e', '')", (qid,))
+    resolver_textos(con, 1)
+    assert dict(con.execute("SELECT id, texto_id FROM questao").fetchall()) == {1: 1, 2: 1, 3: None}
+    assert "mundo digital" in con.execute("SELECT texto_base FROM questao_fts WHERE questao_id=2").fetchone()[0]

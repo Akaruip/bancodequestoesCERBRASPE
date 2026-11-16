@@ -351,6 +351,7 @@ def vincular(con, concurso_id: int) -> None:
         con.execute("UPDATE prova SET n_gabarito=? WHERE id=?", (n_gab_total or None, p["id"]))
     _aplica_justificativas(con, concurso_id)
     _aplica_padroes(con, concurso_id)
+    resolver_textos(con, concurso_id)
     if datas_ed or datas_ap:
         con.execute("UPDATE concurso SET data_edital_pdf=COALESCE(?, data_edital_pdf), data_aplicacao=?, "
                     "ano_aplicacao=COALESCE(?, ano_aplicacao) WHERE id=?",
@@ -798,6 +799,67 @@ def validar_provas(con, concurso_id: int) -> None:
             db.pendencia(con, "validacao", f"{len(sem)} questão(ões) sem gabarito: {sem[:15]}",
                          p["concurso_id"], p["documento_id"])
         con.execute("UPDATE prova SET extracao_status=? WHERE id=?", (status, p["id"]))
+
+
+_ROTULO_CITADO = re.compile(r"\bTEXTOS?\s+((?:[A-Z]{1,3}\d[A-Z0-9]*(?:-[IVX]+)?)(?:\s*(?:,|E)\s*[A-Z]{1,3}\d[A-Z0-9]*(?:-[IVX]+)?)*)")
+# referência explícita a um texto anterior. Tabela/figura/gráfico ficam de fora: costumam estar no próprio comando
+# ou numa imagem, e o texto anterior é de outras questões
+_CITA_TEXTO = re.compile(r"\b(?:TEXTO|FRAGMENTO DE TEXTO|POEMA)\s+(?:PRECEDENTE|ANTERIOR|ACIMA|APRESENTADO)\b")
+
+
+_TERMINA_COMANDO = re.compile(r"\b(?:JULGUE|ASSINALE|MARQUE|JUDGE|RESPONDA)\b[^.]{0,200}[.:]?\s*$")
+
+
+def resolver_textos(con, concurso_id: int) -> None:
+    """questao.texto_id = texto de apoio da questão. O bloco imediato (texto_base_id) pode ser só o comando
+    ('Julgue os itens ... do texto CB1A1') e o texto ficar no bloco anterior: segue o rótulo citado ('Texto CB1A1')
+    ou, se o comando se refere a um texto ('do texto', 'texto precedente', 'o gráfico'), o texto logo antes."""
+    for (pid,) in con.execute("SELECT id FROM prova WHERE concurso_id=?", (concurso_id,)).fetchall():
+        blocos = con.execute("SELECT id, tipo, rotulo, conteudo FROM texto_base WHERE prova_id=? ORDER BY id",
+                             (pid,)).fetchall()
+        if not blocos:
+            continue
+        pos = {b["id"]: k for k, b in enumerate(blocos)}
+        por_rotulo: dict[str, int] = {}
+        for b in blocos:
+            # rótulo no início do bloco, às vezes depois de um título ("LÍNGUA PORTUGUESA Texto CB3A1-I ...")
+            m = re.search(r"(?i)\bTEXTO\s+([A-Z]{1,3}\d[A-Z0-9]*(?:-[IVX]+)?)\b", b["conteudo"].strip()[:80])
+            if m and b["tipo"] == "texto":
+                por_rotulo.setdefault(m.group(1).upper(), b["id"])
+        alvo: dict[int, int | None] = {}
+        for b in blocos:
+            if b["tipo"] == "texto":
+                alvo[b["id"]] = b["id"]
+                continue
+            t = norm(b["conteudo"])
+            texto = None
+            m = _ROTULO_CITADO.search(t)
+            if m:
+                rot = re.split(r"\s*(?:,|\bE\b)\s*", m.group(1))[0]
+                texto = por_rotulo.get(rot)
+            if texto is None and _CITA_TEXTO.search(t):
+                # só o bloco imediatamente anterior, e só se for um texto "aberto": um texto que já termina com
+                # o comando de outras questões ("... julgue os itens a seguir.") é uma unidade fechada
+                k = pos[b["id"]]
+                ant = blocos[k - 1] if k > 0 else None
+                if ant is not None and ant["tipo"] == "texto" and not _TERMINA_COMANDO.search(norm(ant["conteudo"])[-250:]):
+                    texto = ant["id"]
+            alvo[b["id"]] = texto
+        antes = dict(con.execute("SELECT id, texto_id FROM questao WHERE prova_id=?", (pid,)).fetchall())
+        con.executemany("UPDATE questao SET texto_id=? WHERE prova_id=? AND texto_base_id=?",
+                        [(t, pid, b) for b, t in alvo.items()])
+        con.execute("UPDATE questao SET texto_id=NULL WHERE prova_id=? AND texto_base_id IS NULL", (pid,))
+        # busca textual: o texto de apoio entra junto com o bloco imediato (só onde o texto de apoio mudou)
+        mudou = [qid for qid, t in con.execute("SELECT id, texto_id FROM questao WHERE prova_id=?", (pid,))
+                 if antes.get(qid, -1) != t]
+        for qid in mudou:
+            con.execute("""UPDATE questao_fts SET texto_base=(
+                             SELECT CASE WHEN q.texto_id IS NOT NULL AND q.texto_id<>q.texto_base_id
+                                         THEN tt.conteudo || ' ' || COALESCE(tb.conteudo, '')
+                                         ELSE COALESCE(tb.conteudo, '') END
+                             FROM questao q LEFT JOIN texto_base tb ON tb.id=q.texto_base_id
+                             LEFT JOIN texto_base tt ON tt.id=q.texto_id WHERE q.id=?)
+                           WHERE questao_id=?""", (qid, qid))
 
 
 def _remove_provas_fora(con) -> int:

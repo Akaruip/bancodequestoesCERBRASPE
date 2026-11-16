@@ -1,6 +1,6 @@
 # Relatório final — banco de questões Cebraspe
 
-Gerado em 2026-11-16T23:03:31+00:00 a partir de `cebraspe.db`.
+Gerado em 2026-11-16T23:45:02+00:00 a partir de `cebraspe.db`.
 
 ## Visão geral
 
@@ -33,6 +33,9 @@ Gerado em 2026-11-16T23:03:31+00:00 a partir de `cebraspe.db`.
 ## Gabaritos
 
 Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **0** (0.0% de 210012). Cada caso tem pendência com o motivo.
+
+
+Questões objetivas com **texto de apoio** (`texto_id`): **36822**, das quais 2000 ligadas pelo rótulo citado no comando ("do texto CB1A1").
 
 
 Provas com **somente o gabarito preliminar** (definitivo não publicado ou não vinculado): **131** (9039 questões). Nelas `resposta_definitiva` fica vazia e a resposta está em `resposta_preliminar`; cada prova tem a pendência de validação correspondente.

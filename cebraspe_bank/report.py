@@ -31,6 +31,9 @@ def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
                            f"ON c.id=p.concurso_id WHERE 1=1{fq} GROUP BY 1 ORDER BY 2 DESC", fa).fetchall()
     n_obj = um(f"SELECT COUNT(*) FROM questao q JOIN prova p ON p.id=q.prova_id JOIN concurso c ON c.id=p.concurso_id "
                f"WHERE q.tipo<>'DISC'{fq}")
+    n_apoio = con.execute(f"""SELECT SUM(q.texto_id IS NOT NULL), SUM(q.texto_id IS NOT NULL AND q.texto_id<>q.texto_base_id)
+                          FROM questao q JOIN prova p ON p.id=q.prova_id JOIN concurso c ON c.id=p.concurso_id
+                          WHERE q.tipo<>'DISC'{fq}""", fa).fetchone()
     # provas cujas questões com resposta têm só o gabarito preliminar (definitivo não publicado ou não vinculado)
     so_pre = con.execute(f"""SELECT COUNT(*), COALESCE(SUM(n), 0) FROM (SELECT p.id, COUNT(*) n FROM questao q
                          JOIN prova p ON p.id=q.prova_id JOIN concurso c ON c.id=p.concurso_id
@@ -94,6 +97,8 @@ def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
           "\n## Gabaritos\n",
           f"Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **{sem_gab}** "
           f"({100.0 * sem_gab / max(1, n_obj):.1f}% de {n_obj}). Cada caso tem pendência com o motivo.\n",
+          f"\nQuestões objetivas com **texto de apoio** (`texto_id`): **{n_apoio[0]}**, das quais {n_apoio[1]} "
+          f"ligadas pelo rótulo citado no comando (\"do texto CB1A1\").\n",
           f"\nProvas com **somente o gabarito preliminar** (definitivo não publicado ou não vinculado): **{so_pre[0]}** "
           f"({so_pre[1]} questões). Nelas `resposta_definitiva` fica vazia e a resposta está em `resposta_preliminar`; "
           f"cada prova tem a pendência de validação correspondente.\n",

@@ -82,7 +82,7 @@ A fonte usada fica em `ano_fonte`; `ano_edital` e `ano_aplicacao` ficam separado
 | `documento` | cada arquivo listado: tipo, modalidade, cargo, caderno, código da prova, URL, arquivo local, SHA-256 |
 | `prova` / `prova_cargo` | um caderno de prova; um caderno de conhecimentos básicos serve a vários cargos (N:N) |
 | `texto_base` | textos e comandos compartilhados, com faixa de itens quando informada ("itens de 1 a 9") |
-| `questao` | número, `variante` (opção de língua estrangeira: `LÍNGUA INGLESA` etc.; vazio = item comum), tipo (`CE`/`ME`/`DISC`), enunciado, alternativas (JSON), texto-base, seção, imagens, página, `origem_texto` |
+| `questao` | número, `variante` (opção de língua estrangeira: `LÍNGUA INGLESA` etc.; vazio = item comum), tipo (`CE`/`ME`/`DISC`), enunciado, alternativas (JSON), `texto_base_id` (bloco imediatamente anterior: texto ou comando), `texto_id` (texto de apoio: o próprio bloco quando é texto, ou o texto citado pelo comando, ex. "do texto CB1A1"), seção, imagens, página, `origem_texto` |
 | `gabarito` | preliminar, definitivo, anulada, alterada, justificativa, padrão de resposta e documentos de origem |
 | `gabarito_bruto` / `gabarito_grupo` | respostas lidas de cada PDF de gabarito (por variante de língua, pela cor da célula e a legenda), antes do vínculo (reprocessável) |
 | `justificativa_bruta` | linhas das tabelas de justificativas |
