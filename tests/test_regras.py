@@ -123,6 +123,14 @@ def test_segmentacao():
     assert len(_agrupa_linhas(ws)) == 3
 
 
+def test_descricao_edital_gabarito():
+    from cebraspe_bank.extract import _especificas
+    # edital de gabaritos casa com "PROVA OBJETIVA": sobra só vocabulário genérico
+    assert _especificas("Edital nº 10 - Gabaritos oficiais preliminares do modelo padrão da prova objetiva seletiva") == set()
+    assert _especificas("Edital nº 12 - Gabaritos oficiais preliminares do modelo padrão da prova objetiva seletiva e "
+                        "convocações para sessões públicas") == set()
+
+
 def test_justificativas_identificadores():
     from cebraspe_bank.extract import _ids_secao, _mesmas_questoes
     assert _ids_secao("CARGO 8: MÉDICO – ESPECIALIDADE: DERMATOLOGISTA") == {("CARGO", "8")}

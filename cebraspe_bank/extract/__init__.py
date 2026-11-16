@@ -73,6 +73,8 @@ def _processa_gabarito(con, doc) -> None:
     con.execute("DELETE FROM gabarito_bruto WHERE documento_id=?", (doc["id"],))
     con.execute("DELETE FROM gabarito_grupo WHERE documento_id=?", (doc["id"],))
     if not grupos:
+        grupos = gab.parse_vertical(caminho)             # tabela vertical "Questão | Gabarito"
+    if not grupos:
         # sem tabela: lista de anulações/alterações por versão ("Questão 13 Alterada de D p/ B Versão de prova 1.1"),
         # que só vale junto com o gabarito preliminar (as demais questões são mantidas)
         alt = gab.alteracoes(gab.texto_leitura(caminho))
@@ -365,7 +367,7 @@ _GENERICAS_GAB = {"GABARITO", "GABARITOS", "DEFINITIVO", "DEFINITIVOS", "PRELIMI
                   "AREAS", "EXCETO", "P1", "P2", "P3", "AO", "EM", "COM", "JUSTIFICATIVAS", "MATRIZ", "ATUALIZADO", "TIPO",
                   "OPCAO", "OPCOES", "EMPREGO", "EMPREGOS", "FUNCAO", "FUNCOES", "PERFIL", "PERFIS", "CONHECIMENTO",
                   "BLOCO", "I", "II", "III", "IV", "PAG", "SEM", "EFEITO", "VERSAO", "COMUNS", "EDITAL",
-                  "MODELO", "PADRAO"}
+                  "MODELO", "PADRAO", "SELETIVA", "SELETIVO", "SELECAO", "OFICIAL"}
 
 
 def _num_cargos(t: str | None) -> set[int]:
@@ -386,7 +388,11 @@ def _niveis(t: str | None) -> set[str]:
 
 
 def _especificas(t: str | None) -> set[str]:
-    return {x for x in re.findall(r"[A-Z]{3,}", norm(t)) if x not in _GENERICAS_GAB}
+    t = norm(t)
+    if t.startswith("EDITAL"):
+        # edital de gabaritos: "... da prova objetiva e convocação para sessões públicas" / "e o padrão de resposta"
+        t = re.split(r"\s+E\s+(?:OS?\s+|AS?\s+)?(?:CONVOCA|PADR|RESULTADO|SESS)", t)[0]
+    return {x for x in re.findall(r"[A-Z]{3,}", t) if x not in _GENERICAS_GAB}
 
 
 def _cod_base(c: str | None) -> tuple[str, str] | None:

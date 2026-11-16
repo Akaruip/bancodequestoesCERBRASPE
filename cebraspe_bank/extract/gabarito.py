@@ -426,6 +426,56 @@ def parse(caminho: Path | str) -> list[GabaritoPagina]:
     return out
 
 
+def parse_vertical(caminho: Path | str) -> list[GabaritoPagina]:
+    """Tabela vertical 'Questão | Gabarito' (uma linha por item: '1 A', '2 D', ...), que pode seguir por várias
+    páginas. Exige o cabeçalho e uma sequência crescente de >= 10 itens; numeração que recomeça abre outro grupo."""
+    grupos: list[GabaritoPagina] = []
+    atual: GabaritoPagina | None = None
+    ultimo = 0
+    viu_cabecalho = False
+    anterior, rotulo = "", None            # linha antes do cabeçalho = título da tabela (cargo, modelo...)
+    with pymupdf.open(caminho) as pdf:
+        for pno, page in enumerate(pdf):
+            for _, lw in _linhas(page.get_text("words")):
+                toks = [w[4] for w in lw]
+                if len(toks) == 2 and re.fullmatch(r"(?i)quest[ãa]o|item", toks[0]) and \
+                        re.fullmatch(r"(?i)gabarito", toks[1]):
+                    viu_cabecalho = True
+                    titulo = anterior if re.search(r"(?i)cargo|conhecimento|especialidade|modelo|tipo|prova|perfil",
+                                                   anterior) and "http" not in anterior.lower() else None
+                    if titulo:                        # título novo: outra tabela; sem título: continua (nova página)
+                        rotulo, atual = titulo, None
+                    continue
+                if not (len(toks) == 2 and re.fullmatch(r"\d{1,3}", toks[0])):
+                    linha = " ".join(toks)
+                    # título em duas linhas ("1.1.6 CONHECIMENTOS GERAIS ... – MODELO" + "“A” (CARGOS 1 A 4)")
+                    anterior = linha if re.match(r"\d+(\.\d+)+\s", linha) or not anterior else f"{anterior} {linha}"
+                    anterior = anterior[-300:]
+                if not viu_cabecalho or len(toks) != 2 or not re.fullmatch(r"\d{1,3}", toks[0]):
+                    continue
+                r = _letra(toks[1]) or ("X" if re.fullmatch(r"(?i)anulad[ao]|\*+", toks[1]) else None)
+                if r is None:
+                    continue
+                n = int(toks[0])
+                if atual is None or n <= ultimo:
+                    atual = GabaritoPagina(pno, origem="pdf")
+                    atual.texto_cabecalho = page.get_text()
+                    if rotulo and not re.match(r"(?i)^\d+(\.\d+)*\s+gabaritos? oficia", rotulo):
+                        atual.cargo = rotulo[:200]
+                    grupos.append(atual)
+                elif n > ultimo + 3:
+                    continue                                 # número solto longe da sequência
+                atual.respostas[n] = r
+                ultimo = n
+    out = []
+    for g in grupos:
+        v = sorted(g.respostas)
+        if len(v) >= 10 and sum(1 for a, b in zip(v, v[1:]) if b == a + 1) >= 0.9 * (len(v) - 1):
+            g.avisos.append(f"tabela vertical Questão/Gabarito (itens {v[0]}–{v[-1]})")
+            out.append(g)
+    return out
+
+
 def texto_leitura(caminho: Path | str) -> str:
     """Texto na ordem de leitura (blocos/colunas), para listas corridas como a de alterações."""
     with pymupdf.open(caminho) as pdf:

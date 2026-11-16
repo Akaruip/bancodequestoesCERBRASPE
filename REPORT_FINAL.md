@@ -1,6 +1,6 @@
 # Relatório final — banco de questões Cebraspe
 
-Gerado em 2026-11-16T22:50:20+00:00 a partir de `cebraspe.db`.
+Gerado em 2026-11-16T23:03:31+00:00 a partir de `cebraspe.db`.
 
 ## Visão geral
 
@@ -39,7 +39,7 @@ Provas com **somente o gabarito preliminar** (definitivo não publicado ou não 
 
 | Com definitivo | Com preliminar | Anuladas | Alteradas | Com justificativa | Com padrão de resposta |
 |---|---|---|---|---|---|
-| 200973 | 25004 | 6127 | 1676 | 14446 | 6129 |
+| 200973 | 26163 | 6127 | 1676 | 14446 | 6129 |
 
 ## Concursos e questões por ano
 
@@ -86,13 +86,14 @@ Lista completa em `data\pendencias.csv`.
 | download | nome do arquivo corrompido na API (caractere inválido); URL irrecuperável | 7 |
 | extracao | nenhuma questão segmentada | 6 |
 | gabarito | padrão de resposta sem prova discursiva correspondente (N candidatas) | 337 |
-| gabarito | nenhuma tabela de gabarito reconhecida no PDF | 24 |
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO – CONHECIMENTOS ESPECÍFICOS – ÊNFASE N | GABARITO DEFINITIVO – CON | 20 |
+| gabarito | nenhuma tabela de gabarito reconhecida no PDF | 16 |
 | gabarito | justificativas: nenhuma linha de tabela reconhecida | 15 |
 | gabarito | prova com gabarito embutido, mas nenhuma resposta reconhecida | 14 |
 | gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N' sem prova correspondente | 14 |
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO PRELIMINAR – CONHECIMENTOS ESPECÍFICOS – DISCIPLINA N | GABARITO PRELIMINAR – | 12 |
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO – CONHECIMENTOS ESPECÍFICOS – PERFIL I - TIPO N | GABARITO DEFINIT | 12 |
+| gabarito | tabela vertical Questão/Gabarito (itens N–N) | 11 |
 | gabarito | justificativas da seção 'None' sem prova correspondente | 10 |
 | gabarito | justificativas da seção 'PROVAS DE CONHECIMENTOS ESPECÍFICOS PARA OS CARGOS DE NÍVEL SUPERIOR / CARGO N – ÁREA N' sem prova correspondente | 8 |
 | gabarito | fase no PDF (preliminar) difere da classificação (definitivo) | 6 |
