@@ -1,6 +1,7 @@
 """Parse dos gabaritos oficiais (grade Item/Gabarito) por coordenadas, com OCR de fallback."""
 from __future__ import annotations
 
+import collections
 import logging
 import re
 import statistics
@@ -240,12 +241,84 @@ def alteracoes(texto: str) -> dict[str, dict[int, tuple[str | None, str]]]:
     return out
 
 
+def _grade_em_imagem(page, pno: int) -> GabaritoPagina | None:
+    """Tabela 'Item / Gabarito' que está numa imagem da página. O OCR da imagem inteira lê mal as letras isoladas
+    (C sai 'G', 'Cc') e perde linhas de números; usa-se dele só a geometria: as colunas vêm da primeira linha 'Item'
+    legível e as linhas de resposta dos rótulos 'Gabarito'. Cada célula é relida isoladamente (só letras de
+    resposta). Os números dos itens seguem a grade a partir do primeiro número da linha 'Item'; as linhas 'Item'
+    legíveis precisam confirmar a numeração."""
+    imgs = [i for i in page.get_image_info() if pymupdf.Rect(i["bbox"]).get_area() > 0.1 * page.rect.get_area()]
+    if not imgs:
+        return None
+    try:
+        tp = page.get_textpage_ocr(language="por", dpi=400, full=False)
+    except Exception as e:  # noqa: BLE001
+        log.warning("OCR da imagem falhou: %s", e)
+        return None
+    linhas = _linhas(page.get_text("words", textpage=tp))
+    texto = "\n".join(" ".join(w[4] for w in lw) for _, lw in linhas)
+    itens = [(yc, lw[1:]) for yc, lw in linhas if re.fullmatch(r"(?i)[il]tem|quest[ãa]o", lw[0][4])]
+    rotulos = [(yc, lw[0]) for yc, lw in linhas if re.fullmatch(r"(?i)gabarito", lw[0][4])]
+    # linha 'Item' de referência: muitas células e maioria numérica; cada token (mesmo ilegível) é uma coluna
+    base = next(((yc, ts) for yc, ts in itens if len(ts) >= 5 and
+                 sum(bool(re.fullmatch(r"\d{1,3}", w[4])) for w in ts) >= 0.5 * len(ts)), None)
+    if base is None or len(rotulos) < 1:
+        return None
+    yb, ns = base
+    cols = [(w[0] + w[2]) / 2 for w in ns]
+    passo = statistics.median(b - a for a, b in zip(cols, cols[1:]))
+    difs = collections.Counter(int(w[4]) - k for k, w in enumerate(ns) if re.fullmatch(r"\d{1,3}", w[4]))
+    inicio, apoio = difs.most_common(1)[0]
+    if apoio < 0.5 * len(ns):
+        return None                                     # números da linha de referência não formam a grade
+    rotulos = [r for r in rotulos if r[0] > yb]
+    # linhas 'Item' legíveis confirmam a numeração da grade (primeiro número de cada linha)
+    for k, (yr, _) in enumerate(rotulos):
+        acima = [[w for w in ts if re.fullmatch(r"\d{1,3}", w[4])] for yc, ts in itens if 0 < yr - yc < 30]
+        acima = [a for a in acima if len(a) >= 3]
+        if acima:
+            esperado = inicio + k * len(cols)
+            lidos = collections.Counter(int(w[4]) - round(((w[0] + w[2]) / 2 - cols[0]) / passo) for w in acima[0])
+            if lidos.most_common(1)[0][0] != esperado:
+                log.warning("grade em imagem: numeração não confere na linha %d", k + 1)
+                return None
+    letras = [w[4].upper() for _, lw in linhas if re.fullmatch(r"(?i)gabarito", lw[0][4]) for w in lw[1:]]
+    whitelist = "ABCDEX" if sum(t in ("A", "B", "D") for t in letras) > 0.1 * max(1, len(letras)) else "CEX"
+    g = GabaritoPagina(pno, origem="ocr")
+    g.texto_cabecalho = texto
+    tn = norm(texto)
+    g.fase = "preliminar" if "PRELIMINAR" in tn and "DEFINITIV" not in tn else (
+        "definitivo" if "DEFINITIV" in tn and "PRELIMINAR" not in tn else None)
+    for k, (yr, rot) in enumerate(rotulos):
+        h = rot[3] - rot[1]
+        for c, x in enumerate(cols):
+            t = re.sub(r"[^A-Z]", "", (ocr_recorte(page, pymupdf.Rect(x - passo * 0.42, yr - h * 0.8, x + passo * 0.42,
+                                                                     yr + h * 0.8), whitelist, psm=10, dpi=600)
+                                       or "").upper())
+            if len(t) == 1:
+                g.respostas[inicio + k * len(cols) + c] = t
+            else:
+                g.avisos.append(f"item {inicio + k * len(cols) + c}: célula ilegível na imagem")
+    g.avisos.append(f"gabarito lido da imagem da página {pno + 1} (OCR por célula)")
+    return g if g.respostas else None
+
+
+def _consecutivos(ns) -> bool:
+    v = [int(w[4]) for w in ns]
+    return sum(1 for a, b in zip(v, v[1:]) if b == a + 1) >= 0.8 * (len(v) - 1)
+
+
 def parse_pagina(page, pno: int) -> list[GabaritoPagina]:
     words, origem = _palavras(page)
     linhas = _linhas(words)
     secoes = _secoes(linhas)
     if len(secoes) == 1:
-        return [_parse_linhas(page, pno, words, origem, linhas)]
+        g = _parse_linhas(page, pno, words, origem, linhas)
+        if not g.respostas and not g.variantes and origem == "pdf":
+            gi = _grade_em_imagem(page, pno)            # tabela publicada como imagem (ex.: edital de gabaritos)
+            if gi:
+                return [gi]
+        return [g]
     out = []
     for rot, ls in secoes:
         g = _parse_linhas(page, pno, words, origem, ls, texto_pagina=linhas)

@@ -63,6 +63,11 @@ def test_classificacao():
     assert classificar("x.pdf", "Justificativas de alteração do gabarito da prova objetiva").tipo == "justificativa"
     assert classificar("x.pdf", "PROVA OBJETIVA (P1) E GABARITO PRELIMINAR COM JUSTIFICATIVAS").tipo == \
         "prova_com_gabarito_preliminar"
+    # edital que publica o próprio gabarito (DPE_RS_21: tabela só como imagem); editais de recurso continuam editais
+    assert classificar("ED_8_DPRS_2021_GABARITOS.PDF", "Edital nº 8 – Gabaritos oficiais preliminares da prova objetiva"
+                       ).tipo == "gabarito_preliminar"
+    assert classificar("x.pdf", "Edital nº 9 - Reabertura do prazo para interposição de recursos contra os gabaritos "
+                                "oficiais preliminares").tipo == "edital"
 
 
 def test_lingua_variantes():

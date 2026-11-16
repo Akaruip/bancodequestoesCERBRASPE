@@ -1,6 +1,6 @@
 # Relatório final — banco de questões Cebraspe
 
-Gerado em 2026-11-16T22:25:32+00:00 a partir de `cebraspe.db`.
+Gerado em 2026-11-16T22:50:20+00:00 a partir de `cebraspe.db`.
 
 ## Visão geral
 
@@ -9,10 +9,10 @@ Gerado em 2026-11-16T22:25:32+00:00 a partir de `cebraspe.db`.
 | Concursos listados | 500 |
 | Concursos com detalhe na API | 465 |
 | Concursos com provas extraídas | 426 |
-| Documentos baixados | 11152 (2.70 GB) |
+| Documentos baixados | 11154 (2.70 GB) |
 | Provas processadas | 5205 |
-| Provas com extração completa | 5102 (98.0%) |
-| Provas parciais / falhas | 97 / 6 |
+| Provas com extração completa | 5103 (98.0%) |
+| Provas parciais / falhas | 96 / 6 |
 
 ## Questões por tipo
 
@@ -32,14 +32,14 @@ Gerado em 2026-11-16T22:25:32+00:00 a partir de `cebraspe.db`.
 
 ## Gabaritos
 
-Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **200** (0.1% de 210012). Cada caso tem pendência com o motivo.
+Questões objetivas (C/E e ME) sem nenhum gabarito vinculado: **0** (0.0% de 210012). Cada caso tem pendência com o motivo.
 
 
-Provas com **somente o gabarito preliminar** (definitivo não publicado ou não vinculado): **130** (8839 questões). Nelas `resposta_definitiva` fica vazia e a resposta está em `resposta_preliminar`; cada prova tem a pendência de validação correspondente.
+Provas com **somente o gabarito preliminar** (definitivo não publicado ou não vinculado): **131** (9039 questões). Nelas `resposta_definitiva` fica vazia e a resposta está em `resposta_preliminar`; cada prova tem a pendência de validação correspondente.
 
 | Com definitivo | Com preliminar | Anuladas | Alteradas | Com justificativa | Com padrão de resposta |
 |---|---|---|---|---|---|
-| 200973 | 24608 | 6127 | 1675 | 14446 | 6129 |
+| 200973 | 25004 | 6127 | 1676 | 14446 | 6129 |
 
 ## Concursos e questões por ano
 
@@ -86,8 +86,8 @@ Lista completa em `data\pendencias.csv`.
 | download | nome do arquivo corrompido na API (caractere inválido); URL irrecuperável | 7 |
 | extracao | nenhuma questão segmentada | 6 |
 | gabarito | padrão de resposta sem prova discursiva correspondente (N candidatas) | 337 |
+| gabarito | nenhuma tabela de gabarito reconhecida no PDF | 24 |
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO – CONHECIMENTOS ESPECÍFICOS – ÊNFASE N | GABARITO DEFINITIVO – CON | 20 |
-| gabarito | nenhuma tabela de gabarito reconhecida no PDF | 15 |
 | gabarito | justificativas: nenhuma linha de tabela reconhecida | 15 |
 | gabarito | prova com gabarito embutido, mas nenhuma resposta reconhecida | 14 |
 | gabarito | justificativas da seção 'CONHECIMENTOS ESPECÍFICOS / CARGO N' sem prova correspondente | 14 |
@@ -215,6 +215,7 @@ Lista completa em `data\pendencias.csv`.
 | gabarito | justificativas da seção 'BLOCO II / PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ASSISTENTE DE PROJETO – PERFIL N – USI' ambíguas entre N p | 1 |
 | gabarito | justificativas da seção 'BLOCO II / PROVA DE CONHECIMENTOS ESPECÍFICOS / CARGO N: ASSISTENTE DE PROJETO – PERFIL N – UDIGIS' ambíguas entre  | 1 |
 | gabarito | justificativas da seção 'BLOCO I - CBN / PROVA DE CONHECIMENTOS BÁSICOS PARA OS CARGOS DE NÍVEL MÉDIO' sem prova correspondente | 1 |
+| gabarito | gabarito lido da imagem da página N (OCR por célula) | 1 |
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO – PROGRAMA DE CAPACITAÇÃO (PROCAP) | GABARITO DEFINITIVO – PROGRAM | 1 |
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO – CURSO DE FORMAÇÃO – Nª TURMA | GABARITO DEFINITIVO – CURSO DE FO | 1 |
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO – CONHECIMENTOS ESPECÍFICOS – CARGO N | GABARITO DEFINITIVO – CONH | 1 |
@@ -226,10 +227,9 @@ Lista completa em `data\pendencias.csv`.
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO - CONHECIMENTOS ESPECÍFICOS - CARGO N | 1 |
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO - CONHECIMENTOS ESPECÍFICOS - CARGO N | GABARITO DEFINITIVO - CONH | 1 |
 | gabarito | gabarito ambíguo para a prova (respostas diferentes): GABARITO DEFINITIVO - CONHECIMENTOS ESPECÍFICOS - ATIVIDADE N | GABARITO DEFINITIVO -  | 1 |
-| validacao | somente gabarito preliminar (definitivo não publicado ou não vinculado) | 130 |
-| validacao | prova sem gabarito vinculado | 91 |
+| validacao | somente gabarito preliminar (definitivo não publicado ou não vinculado) | 131 |
+| validacao | prova sem gabarito vinculado | 90 |
 | validacao | nº de itens extraídos (N) difere do gabarito (N) | 6 |
-| validacao | N questão(ões) sem gabarito: […] | 1 |
 
 ## Observações de método
 

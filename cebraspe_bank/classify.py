@@ -142,6 +142,10 @@ def classificar(nome_arquivo: str, descricao: str | None, extensao: str | None =
                 c.motivos.append("prova+gabarito sem fase clara (preliminar/definitivo)")
         else:
             c.tipo = "prova_com_gabarito_definitivo" if defin else "prova_com_gabarito_preliminar"
+    elif re.match(r"^EDITAL\b[^-–]*[-–:]?\s*GABARITOS? OFICIA(L|IS) (PRELIMINAR|DEFINITIV)", d) \
+            and not re.search(r"RECURSO|REABERTURA|PRORROGA|CONSULTA|RESULTADO|RETIFICA|SESSAO", d):
+        # edital que publica o próprio gabarito (às vezes só como imagem da tabela)
+        c.tipo = "gabarito_definitivo" if "DEFINITIV" in d else "gabarito_preliminar"
     elif tem_gab and not _EDITALISH.search(d.replace("GABARITO", "")) or re.match(r"^GAB ", n):
         if prelim and not defin:
             c.tipo = "gabarito_preliminar"

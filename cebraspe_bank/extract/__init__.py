@@ -364,7 +364,8 @@ _GENERICAS_GAB = {"GABARITO", "GABARITOS", "DEFINITIVO", "DEFINITIVOS", "PRELIMI
                   "ESPECIFICOS", "ESPECIALIZADOS", "COMPLEMENTARES", "NIVEL", "SUPERIOR", "MEDIO", "FUNDAMENTAL", "AREA",
                   "AREAS", "EXCETO", "P1", "P2", "P3", "AO", "EM", "COM", "JUSTIFICATIVAS", "MATRIZ", "ATUALIZADO", "TIPO",
                   "OPCAO", "OPCOES", "EMPREGO", "EMPREGOS", "FUNCAO", "FUNCOES", "PERFIL", "PERFIS", "CONHECIMENTO",
-                  "BLOCO", "I", "II", "III", "IV", "PAG", "SEM", "EFEITO", "VERSAO", "COMUNS"}
+                  "BLOCO", "I", "II", "III", "IV", "PAG", "SEM", "EFEITO", "VERSAO", "COMUNS", "EDITAL",
+                  "MODELO", "PADRAO"}
 
 
 def _num_cargos(t: str | None) -> set[int]:
