@@ -71,6 +71,20 @@ def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
                     LEFT JOIN concurso c ON c.id=x.concurso_id LEFT JOIN documento d ON d.id=x.documento_id
                     WHERE x.resolvido_em IS NULL{fq} ORDER BY x.etapa, c.slug""", fa):
             w.writerow(list(r))
+    jq = f"FROM questao q JOIN prova p ON p.id=q.prova_id JOIN concurso c ON c.id=p.concurso_id WHERE 1=1{fq}"
+    n_q = um(f"SELECT COUNT(*) {jq}")
+    n_disc = um(f"SELECT COUNT(*) {jq} AND q.disciplina IS NOT NULL")
+    n_ass = um(f"SELECT COUNT(*) {jq} AND q.assunto IS NOT NULL")
+    disc_fonte = con.execute(f"SELECT COALESCE(q.disciplina_fonte,'(não identificada)'), COUNT(*) {jq} GROUP BY 1 "
+                             "ORDER BY 2 DESC", fa).fetchall()
+    disc_tipo = con.execute(f"""SELECT q.disciplina, COUNT(*), SUM(q.tipo='CE'), SUM(q.tipo='ME'), SUM(q.tipo='DISC')
+                            {jq} AND q.disciplina IS NOT NULL GROUP BY 1 ORDER BY 2 DESC""", fa).fetchall()
+    n_conc_ed = um(f"""SELECT COUNT(DISTINCT e.concurso_id) FROM edital_disciplina e JOIN concurso c ON c.id=e.concurso_id
+                       WHERE e.tipo<>'vazio'{fq}""")
+    n_conc_vazio = um(f"""SELECT COUNT(DISTINCT e.concurso_id) FROM edital_disciplina e JOIN concurso c ON c.id=e.concurso_id
+                          WHERE e.tipo='vazio'{fq}""")
+    blocos = con.execute(f"SELECT COALESCE(q.bloco,'(sem título de bloco)'), COUNT(*), SUM(q.disciplina IS NOT NULL) "
+                         f"{jq} GROUP BY 1 ORDER BY 2 DESC", fa).fetchall()
     falhos_crawl = [r[0] for r in con.execute(
         f"SELECT c.slug FROM concurso c WHERE c.detalhe_ok=0{fq} ORDER BY c.slug", fa)]
 
@@ -104,6 +118,22 @@ def report(con, saida: str, slugs=None, ano=None, desde=None) -> dict:
           f"cada prova tem a pendência de validação correspondente.\n",
           _tab(["Com definitivo", "Com preliminar", "Anuladas", "Alteradas", "Com justificativa", "Com padrão de resposta"],
                [tuple(v or 0 for v in gab)]),
+          "\n## Disciplinas (Fase 5)\n",
+          f"Questões com **disciplina** identificada: **{n_disc}** ({100.0 * n_disc / max(1, n_q):.1f}% de {n_q}); "
+          f"com **assunto** literal do comando: **{n_ass}** ({100.0 * n_ass / max(1, n_q):.1f}%). "
+          "As provas do Cebraspe quase nunca têm título de disciplina: a disciplina vem do idioma da opção de língua "
+          "(`variante`), do título do bloco quando ele é uma disciplina (`titulo_pdf`), do idioma do comando "
+          "(`regra_comando`), do conteúdo programático do edital de abertura comparado ao assunto literal "
+          "(`edital_assunto`), da tabela de palavras-chave aplicada ao assunto (`regra_assunto`), da única "
+          "disciplina/área do cargo no edital (`edital_unica`) ou da área declarada na prova quando o concurso não "
+          "tem conteúdo programático (`area_prova`). Sem nenhuma dessas fontes fica NULL.\n",
+          f"\nEditais de abertura lidos com conteúdo programático: **{n_conc_ed}** concursos; "
+          f"sem conteúdo programático legível: **{n_conc_vazio}** (pendência `disciplina`).\n",
+          _tab(["disciplina_fonte", "Questões"], disc_fonte),
+          "",
+          _tab(["Disciplina", "Questões", "CE", "ME", "DISC"], disc_tipo),
+          "\n### Blocos da prova\n",
+          _tab(["Bloco", "Questões", "Com disciplina"], blocos),
           "\n## Concursos e questões por ano\n",
           _tab(["Ano", "Concursos", "Provas", "Questões"], por_ano),
           "\n## Fonte do ano do concurso\n",

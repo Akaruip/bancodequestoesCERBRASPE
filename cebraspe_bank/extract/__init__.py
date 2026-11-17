@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .. import anos, config, db
 from ..crawl import recalcular_ano, reclassificar
+from ..disciplina import classificar
 from ..texto import norm
 from . import combinado, gabarito as gab, justificativa as just
 from .pdf import Documento, ler, recorte
@@ -936,6 +937,7 @@ def extract(con, slugs=None, ano=None, desde=None, refazer: bool = False, revinc
         if mudou or refazer or revincular:
             vincular(con, c["id"])
             validar_provas(con, c["id"])
+            classificar(con, slugs=[c["slug"]])      # Fase 5: questões reinseridas perdem a classificação
             con.commit()
             log.info("%s: extraído", c["slug"])
     return st

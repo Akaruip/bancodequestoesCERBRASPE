@@ -19,6 +19,7 @@ resposta publicados em <https://www.cebraspe.org.br/concursos/>.
 python -m cebraspe_bank crawl                 # Fase 1: concursos e documentos (metadados)
 python -m cebraspe_bank download              # Fase 2: PDFs de provas, gabaritos, justificativas e padrões
 python -m cebraspe_bank extract               # Fases 3-4: questões, textos-base, imagens e gabaritos
+python -m cebraspe_bank classify              # Fase 5: bloco, assunto e disciplina (regras, sem LLM)
 python -m cebraspe_bank validate              # consistência + amostra de revisão (data/revisao/revisao_amostra.html)
 python -m cebraspe_bank report                # REPORT_FINAL.md e data/pendencias.csv
 ```
@@ -52,8 +53,56 @@ python -m cebraspe_bank crawl && python -m cebraspe_bank download && python -m c
   Documentos que somem do site ficam marcados (`removido_do_site=1`), nunca apagados.
 - `download` nunca baixa de novo um arquivo que já existe: confere o SHA-256 gravado. Arquivo presente sem registro é
   apenas registrado. Downloads são atômicos (`.part` → rename).
-- `extract` só reprocessa PDFs cujo SHA-256 (ou a versão do extrator) mudou; o vínculo prova↔gabarito é recalculado
-  para os concursos alterados.
+- `extract` só reprocessa PDFs cujo SHA-256 (ou a versão do extrator) mudou; o vínculo prova↔gabarito e a
+  classificação por disciplina são recalculados para os concursos alterados.
+- `classify` é idempotente: rode de novo (sem filtros) depois de editar as regras em `cebraspe_bank/disciplina.py`.
+
+## Disciplina (Fase 5)
+
+As provas do Cebraspe quase nunca trazem o nome da disciplina: os títulos são de bloco ("CONHECIMENTOS BÁSICOS",
+"CONHECIMENTOS ESPECÍFICOS"). Por isso a classificação usa três colunas, cada uma com origem rastreável:
+
+| Coluna | Conteúdo |
+|---|---|
+| `bloco` | bloco normalizado a partir do título lido no PDF: `basicos`, `gerais`, `especificos`, `complementares`, `especializados`, `discursiva`, `objetiva` (título genérico "PROVA OBJETIVA") |
+| `assunto` | trecho **literal** do comando: "Acerca de **atos administrativos**, julgue…", "Julgue os itens, relativos a **taxas de juros**." No ME, a frase "assinale…" do enunciado. Trechos que só apontam para o contexto ("essa situação hipotética", "o texto CB1A1") são descartados |
+| `disciplina` + `disciplina_fonte` | ver a precedência abaixo |
+| `disciplina_edital` | nome da disciplina/área como está no edital (ou na prova, para `area_prova`) |
+
+Precedência de `disciplina_fonte` (a primeira que se aplica vence):
+
+1. `variante` — item de opção de língua estrangeira;
+2. `titulo_pdf` — o título do bloco já é uma disciplina ("NOÇÕES DE INFORMÁTICA");
+3. `regra_comando` — comando escrito em inglês/espanhol;
+4. `edital_assunto` — **conteúdo programático do edital de abertura** (`cebraspe_bank/edital.py`): as candidatas são as
+   disciplinas do edital para o cargo/área da prova e o mesmo grupo de bloco (básicos/gerais × específicos); o assunto
+   literal é comparado (TF-IDF, sem LLM) com o nome e com cada tópico de cada candidata, e a 1ª precisa ter nota
+   ≥ 1,5× a da 2ª;
+5. `regra_assunto` — tabela de palavras-chave `REGRAS` (`cebraspe_bank/disciplina.py`) aplicada ao assunto;
+6. `edital_unica` — o cargo/área tem uma única disciplina (ou só uma área) no edital, ex. "Engenharia Civil";
+7. `area_prova` — concurso **sem conteúdo programático** (ex.: residências): a área declarada pela própria prova
+   ("PROVA OBJETIVA - ÁREA PROFISSIONAL: NUTRIÇÃO"), só fora dos blocos básicos/gerais e se não for um rótulo genérico
+   ("ÁREA: ADMINISTRATIVA").
+
+A disciplina vinda do edital é padronizada pela tabela de regras quando possível ("NOÇÕES DE DIREITO ADMINISTRATIVO"
+→ "Direito Administrativo"); senão fica o nome do edital ("Transportes Aquaviários"). O nome original fica em
+`disciplina_edital`. Sem fonte, a disciplina fica NULL: nada é inferido pela posição do item ou por itens vizinhos.
+
+Salvaguardas do edital: escolhe-se o edital "atualizado conforme retificações" ou o publicado por último (uma
+republicação pode renumerar os cargos); prova sem cargo/área identificáveis cujas candidatas são de cargos diferentes
+não é classificada pelo edital; disciplina cuja numeração de tópicos recomeça (engoliu outras cujos títulos não foram
+lidos) não decide.
+
+Conferência manual (amostras aleatórias): `regra_assunto` ≈ 95% de acerto; `edital_assunto` no banco inteiro, 37 de 40
+corretas (2 erradas, 1 duvidosa). Para filtrar só o que veio do PDF, use `disciplina_fonte IN ('variante','titulo_pdf')`.
+
+Os editais de abertura são baixados à parte (só eles, um PDF por concurso, o "atualizado conforme retificações"
+quando houver) e lidos uma vez (cache em `edital_disciplina`):
+
+```bash
+python -m cebraspe_bank download --editais-conteudo
+python -m cebraspe_bank classify
+```
 
 ## Regras de rede
 
@@ -82,10 +131,11 @@ A fonte usada fica em `ano_fonte`; `ano_edital` e `ano_aplicacao` ficam separado
 | `documento` | cada arquivo listado: tipo, modalidade, cargo, caderno, código da prova, URL, arquivo local, SHA-256 |
 | `prova` / `prova_cargo` | um caderno de prova; um caderno de conhecimentos básicos serve a vários cargos (N:N) |
 | `texto_base` | textos e comandos compartilhados, com faixa de itens quando informada ("itens de 1 a 9") |
-| `questao` | número, `variante` (opção de língua estrangeira: `LÍNGUA INGLESA` etc.; vazio = item comum), tipo (`CE`/`ME`/`DISC`), enunciado, alternativas (JSON), `texto_base_id` (bloco imediatamente anterior: texto ou comando), `texto_id` (texto de apoio: o próprio bloco quando é texto, ou o texto citado pelo comando, ex. "do texto CB1A1"), seção, imagens, página, `origem_texto` |
+| `questao` | número, `variante` (opção de língua estrangeira: `LÍNGUA INGLESA` etc.; vazio = item comum), tipo (`CE`/`ME`/`DISC`), enunciado, alternativas (JSON), `texto_base_id` (bloco imediatamente anterior: texto ou comando), `texto_id` (texto de apoio: o próprio bloco quando é texto, ou o texto citado pelo comando, ex. "do texto CB1A1"), seção, `bloco`, `assunto`, `disciplina` e `disciplina_fonte` (Fase 5), imagens, página, `origem_texto` |
 | `gabarito` | preliminar, definitivo, anulada, alterada, justificativa, padrão de resposta e documentos de origem |
 | `gabarito_bruto` / `gabarito_grupo` | respostas lidas de cada PDF de gabarito (por variante de língua, pela cor da célula e a legenda), antes do vínculo (reprocessável) |
 | `justificativa_bruta` | linhas das tabelas de justificativas |
+| `edital_disciplina` | conteúdo programático lido do edital de abertura: bloco, cargos, área, disciplina e tópicos (cache da Fase 5b) |
 | `pendencia` | tudo o que não foi possível extrair/validar, com etapa e motivo |
 | `checkpoint` | progresso por etapa (retomada) |
 | `questao_fts` | busca textual (FTS5) em enunciado + texto-base |

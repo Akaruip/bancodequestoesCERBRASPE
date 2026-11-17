@@ -117,8 +117,12 @@ CREATE TABLE IF NOT EXISTS questao (
     enunciado         TEXT NOT NULL,
     alternativas_json TEXT,
     codigo_item       TEXT,
-    disciplina        TEXT,
-    assunto           TEXT,
+    disciplina        TEXT,              -- Fase 5 (cebraspe_bank/disciplina.py); NULL = não identificada
+    disciplina_fonte  TEXT,              -- variante | titulo_pdf | regra_comando | edital_assunto | regra_assunto
+                                         -- | edital_unica | area_prova
+    disciplina_edital TEXT,              -- nome da disciplina/área como está no edital (ou na prova, area_prova)
+    assunto           TEXT,              -- trecho literal do comando ("Acerca de <assunto>, julgue...")
+    bloco             TEXT,              -- basicos | gerais | especificos | complementares | ... (de secao)
     imagens           TEXT,
     secao             TEXT,              -- marcador de bloco da prova ("CONHECIMENTOS BÁSICOS" ...)
     origem_texto      TEXT NOT NULL DEFAULT 'pdf',  -- pdf | ocr
@@ -202,6 +206,22 @@ CREATE TABLE IF NOT EXISTS checkpoint (
     PRIMARY KEY (etapa, chave)
 );
 
+-- Fase 5b: conteúdo programático do edital de abertura (cache da leitura; recriável)
+CREATE TABLE IF NOT EXISTS edital_disciplina (
+    id            INTEGER PRIMARY KEY,
+    documento_id  INTEGER NOT NULL REFERENCES documento(id),
+    concurso_id   INTEGER NOT NULL REFERENCES concurso(id),
+    ordem         INTEGER NOT NULL,
+    bloco         TEXT,                  -- basicos | gerais | especificos | ... | NULL
+    cargos        TEXT,                  -- JSON [números] ou NULL (= todos)
+    area          INTEGER,
+    nome          TEXT NOT NULL,         -- como está no edital
+    tipo          TEXT NOT NULL,         -- disciplina | area | vazio (edital sem conteúdo programático)
+    topicos       TEXT NOT NULL,
+    versao_leitor INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_edital_disc_doc ON edital_disciplina(documento_id);
+
 CREATE VIRTUAL TABLE IF NOT EXISTS questao_fts USING fts5(
     questao_id UNINDEXED, enunciado, texto_base, tokenize='unicode61 remove_diacritics 2'
 );
@@ -212,6 +232,7 @@ EXTRA = r"""
 CREATE INDEX IF NOT EXISTS ix_prova_chave ON prova(concurso_id, cargo, caderno);
 CREATE INDEX IF NOT EXISTS ix_questao_num ON questao(prova_id, numero, variante);
 CREATE INDEX IF NOT EXISTS ix_questao_texto ON questao(texto_id);
+CREATE INDEX IF NOT EXISTS ix_questao_disciplina ON questao(disciplina);
 """
 
 
@@ -242,6 +263,10 @@ def _migra(con) -> None:
     if "questao" in existentes and "variante" in cols("questao") and "texto_id" not in cols("questao"):
         # coluna nova em tabela com dados: ALTER (o descarte de tabelas derivadas abaixo apagaria as questões)
         con.execute("ALTER TABLE questao ADD COLUMN texto_id INTEGER REFERENCES texto_base(id)")
+    if "questao" in existentes and "variante" in cols("questao"):
+        for c in ("disciplina_fonte", "bloco", "disciplina_edital"):      # Fase 5
+            if c not in cols("questao"):
+                con.execute(f"ALTER TABLE questao ADD COLUMN {c} TEXT")
     derivadas = {"gabarito_bruto": "variante", "questao": "variante", "gabarito": "padrao_resposta",
                  "texto_base": "tipo", "prova": "avisos", "questao_fts": "questao_id"}
     for t, c in derivadas.items():
