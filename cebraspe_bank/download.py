@@ -30,13 +30,21 @@ def caminho_local(ano: int | None, slug: str, nome: str) -> Path:
     return config.RAW_DIR / (str(ano) if ano else "sem_ano") / slug / nome
 
 
-def _selecao(con, slugs, ano, desde, editais: bool):
+def _selecao(con, slugs, ano, desde, editais: bool, conteudo: bool = False):
+    # conteudo=True: também o edital de abertura em PDF de todo concurso com provas (conteúdo programático usado na
+    # classificação por disciplina, Fase 5b) — um por concurso: o "atualizado conforme retificações", se houver
     q = f"""SELECT d.*, c.slug, c.ano AS c_ano, c.ano_fonte FROM documento d JOIN concurso c ON c.id=d.concurso_id
             WHERE d.acessibilidade=0 AND d.removido_do_site=0 AND COALESCE(d.versao,'')<>'sem_efeito'
             AND (d.tipo IN ({','.join('?' * len(TIPOS_DOWNLOAD))})
                  OR (d.tipo='edital_abertura' AND (c.ano_fonte IS NULL OR c.ano_fonte IN ('slug','aplicacao')
-                                                   OR (? AND c.ano_fonte='edital_publicacao'))))"""
-    args: list = [*TIPOS_DOWNLOAD, int(editais)]
+                                                   OR (? AND c.ano_fonte='edital_publicacao')))
+                 OR (? AND d.tipo='edital_abertura' AND lower(COALESCE(d.extensao,''))='pdf'
+                     AND EXISTS (SELECT 1 FROM prova p WHERE p.concurso_id=c.id)
+                     AND (COALESCE(d.versao,'')='atualizado' OR NOT EXISTS (
+                          SELECT 1 FROM documento d2 WHERE d2.concurso_id=d.concurso_id AND d2.tipo='edital_abertura'
+                          AND d2.acessibilidade=0 AND d2.removido_do_site=0 AND d2.versao='atualizado'
+                          AND lower(COALESCE(d2.extensao,''))='pdf'))))"""
+    args: list = [*TIPOS_DOWNLOAD, int(editais), int(conteudo)]
     if slugs:
         q += f" AND c.slug IN ({','.join('?' * len(slugs))})"
         args += slugs
@@ -50,8 +58,10 @@ def _selecao(con, slugs, ano, desde, editais: bool):
 
 
 def download(con, cli: Cliente, slugs=None, ano=None, desde=None, limite: int | None = None,
-             editais: bool = False) -> dict:
-    docs = _selecao(con, slugs, ano, desde, editais)
+             editais: bool = False, conteudo: bool = False) -> dict:
+    docs = _selecao(con, slugs, ano, desde, editais, conteudo)
+    if conteudo:        # --editais-conteudo baixa só os editais de abertura (não mexe nas provas/gabaritos)
+        docs = [d for d in docs if d["tipo"] == "edital_abertura"]
     st = {"selecionados": len(docs), "ja_existiam": 0, "registrados_sem_baixar": 0, "baixados": 0,
           "falhas": 0, "bytes": 0}
     for d in docs:
