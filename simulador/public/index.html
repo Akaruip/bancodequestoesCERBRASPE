@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f3a5f">
+  <title>Simulador CEBRASPE</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topo">
+    <button id="btn-inicio" class="link" type="button">Simulador CEBRASPE</button>
+    <span id="topo-info" class="topo-info"></span>
+  </header>
+
+  <main>
+    <section id="tela-carregando" class="tela">
+      <p class="centro">Carregando o banco de questões…</p>
+    </section>
+
+    <section id="tela-filtros" class="tela" hidden>
+      <div class="cartao">
+        <h1>Novo simulado</h1>
+        <label class="campo">Disciplina
+          <input id="f-disc" list="lista-disc" placeholder="Todas (digite para buscar)" autocomplete="off">
+          <datalist id="lista-disc"></datalist>
+        </label>
+        <label class="campo">Órgão
+          <input id="f-org" list="lista-org" placeholder="Todos (digite para buscar)" autocomplete="off">
+          <datalist id="lista-org"></datalist>
+        </label>
+        <div class="linha">
+          <label class="campo">Ano de <input id="f-ano-de" type="number" inputmode="numeric" placeholder="—"></label>
+          <label class="campo">até <input id="f-ano-ate" type="number" inputmode="numeric" placeholder="—"></label>
+        </div>
+        <fieldset class="campo">
+          <legend>Tipo</legend>
+          <label class="chip"><input type="checkbox" name="tipo" value="CE" checked> Certo/Errado</label>
+          <label class="chip"><input type="checkbox" name="tipo" value="ME" checked> Múltipla escolha</label>
+          <label class="chip"><input type="checkbox" name="tipo" value="DISC"> Discursiva</label>
+        </fieldset>
+        <label class="campo">Bloco
+          <select id="f-bloco"><option value="">Todos</option></select>
+        </label>
+        <label class="campo">Questões
+          <select id="f-hist">
+            <option value="todas">Todas</option>
+            <option value="novas" selected>Só as que ainda não respondi</option>
+            <option value="erradas">Só as que errei</option>
+          </select>
+        </label>
+        <label class="chip"><input id="f-anul" type="checkbox"> Incluir anuladas</label>
+        <div class="linha">
+          <label class="campo">Quantidade
+            <select id="f-qtd">
+              <option>10</option><option selected>20</option><option>30</option><option>50</option><option>100</option>
+            </select>
+          </label>
+        </div>
+        <p id="f-contagem" class="discreto"></p>
+        <button id="btn-comecar" class="primario" type="button">Começar</button>
+      </div>
+
+      <div class="cartao">
+        <h2>Seu desempenho</h2>
+        <div id="estatisticas"><p class="discreto">Nenhuma resposta ainda.</p></div>
+      </div>
+    </section>
+
+    <section id="tela-questao" class="tela" hidden>
+      <div class="progresso"><div id="barra"></div></div>
+      <article class="cartao" id="questao"></article>
+      <div class="acoes" id="acoes"></div>
+    </section>
+
+    <section id="tela-resultado" class="tela" hidden>
+      <div class="cartao" id="resultado"></div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

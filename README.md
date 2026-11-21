@@ -104,6 +104,12 @@ python -m cebraspe_bank download --editais-conteudo
 python -m cebraspe_bank classify
 ```
 
+## Simulador na nuvem
+
+A pasta [`simulador/`](simulador/README.md) publica um simulador de questões na Cloudflare (plano gratuito), com acesso
+pelo celular e login restrito ao seu e-mail. O banco não sai do PC: `simulador/exportar.py` gera só os arquivos que o
+simulador usa, e `simulador/publicar.ps1` envia. Passo a passo em [`simulador/README.md`](simulador/README.md).
+
 ## Regras de rede
 
 - `robots.txt` respeitado (o do site permite tudo).

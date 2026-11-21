@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "simulador-cebraspe",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "none"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "simulador-cebraspe",
+      // Preenchido por publicar.ps1 na primeira publicação (wrangler d1 create).
+      "database_id": "COLOQUE_AQUI_O_ID_DO_D1"
+    }
+  ]
+  // TEAM_DOMAIN, POLICY_AUD e EMAILS_PERMITIDOS são secrets: publicar.ps1 -ConfigurarAcesso (ver README.md).
+}
